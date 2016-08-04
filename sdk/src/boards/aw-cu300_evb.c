@@ -1,10 +1,10 @@
 /*
- *  Copyright (C) 2008-2015, Marvell International Ltd.
+ *  Copyright (C) 2008-2016, Marvell International Ltd.
  *  All Rights Reserved.
  */
 
 /*
- * This is a board specific configuration file for Makerville Knit development board - v1.0
+ * This is a board specific configuration file for Azurewave CU300 Evaluation Board
  */
 
 #include <wmtypes.h>
@@ -94,24 +94,24 @@ void board_ssp_pin_config(int id, bool cs)
  */
 
 output_gpio_cfg_t board_led_1()
-{
-	output_gpio_cfg_t gcfg = {
-		.gpio = GPIO_40,
-		.type = GPIO_ACTIVE_LOW,
-	};
+  {
+  	output_gpio_cfg_t gcfg = {
+  		.gpio = GPIO_40,
+  		.type = GPIO_ACTIVE_LOW,
+  	};
 
-	return gcfg;
-}
+  	return gcfg;
+  }
 
 output_gpio_cfg_t board_led_2()
-{
-	output_gpio_cfg_t gcfg = {
-		.gpio = -1,
-	};
+  {
+  	output_gpio_cfg_t gcfg = {
+  		.gpio = GPIO_41,
+  		.type = GPIO_ACTIVE_LOW,
+  	};
 
-	return gcfg;
-}
-
+  	return gcfg;
+  }
 output_gpio_cfg_t board_led_3()
 {
 	output_gpio_cfg_t gcfg = {
@@ -132,14 +132,15 @@ output_gpio_cfg_t board_led_4()
 
 int board_button_1()
 {
-	GPIO_PinMuxFun(GPIO_16, GPIO16_GPIO16);
-	return GPIO_16;
+	GPIO_PinMuxFun(GPIO_26, GPIO26_GPIO26);
+	return GPIO_26;
 }
 
-// int board_button_2()
-// {
-// 	return -WM_FAIL;
-// }
+int board_button_2()
+{
+	GPIO_PinMuxFun(GPIO_24, GPIO24_GPIO24);
+	return GPIO_24;
+}
 
 int board_button_3()
 {
