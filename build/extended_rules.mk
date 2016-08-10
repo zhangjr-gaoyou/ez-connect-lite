@@ -29,6 +29,27 @@ endef
 
 $(foreach p,$(filter-out $(b-axf-only),$(b-exec-y)), $(eval $(call create_sdk_prog,$(p))))
 endif
+#-----------------------FTFS Creation rules------------#
+
+define create_ftfs
+  $(1).app: $($(1)-output-dir-y)/$(2).ftfs
+
+# Following dependency rule only checks existence of $(1)-output-dir-y, not its timestamp
+  $($(1)-output-dir-y)/$(2).ftfs: | $($(1)-output-dir-y)
+
+  $($(1)-output-dir-y)/$(2).ftfs: $$(t_mkftfs) $(wildcard $($(2)-ftfs-dir-y)/*)
+	$$(AT)$$(t_python) $$(t_mkftfs) $($(2)-ftfs-api-y) $$@ $($(2)-ftfs-dir-y)
+	@echo " [ftfs] $$(call b-abspath,$$@)"
+
+ .PHONY: $(1).app.clean_$(2).ftfs
+
+   $(1).app.clean: $(1).app.clean_$(2).ftfs
+
+# Target to clean each ftfs for an app
+  $(1).app.clean_$(2).ftfs:
+	$$(AT)$$(t_rm) -f $($(1)-output-dir-y)/$(2).ftfs
+
+endef
 
 $(foreach p,$(b-exec-y),$(eval $(foreach f,$($(p)-ftfs-y),$(call create_ftfs,$(p),$(basename $(f))))))
 
