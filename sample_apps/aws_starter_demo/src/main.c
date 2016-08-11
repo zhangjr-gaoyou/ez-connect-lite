@@ -29,7 +29,7 @@
 #include <led_indicator.h>
 #include <board.h>
 #include <push_button.h>
-#include <aws_iot_mqtt_interface.h>
+#include <aws_iot_mqtt_client_interface.h>
 #include <aws_iot_shadow_interface.h>
 #include <aws_utils.h>
 /* configuration parameters */
@@ -54,8 +54,7 @@ static volatile uint32_t led_1_state;
 static volatile uint32_t led_1_state_prev = -1;
 
 static output_gpio_cfg_t led_1;
-static MQTTClient_t mqtt_client;
-static enum state device_state;
+static AWS_IoT_Client mqtt_client;
 
 /* Thread handle */
 static os_thread_t aws_starter_thread;
@@ -143,7 +142,8 @@ static char private_key_buffer[AWS_PRIV_KEY_SIZE];
 static char thing_name[THING_LEN];
 static char client_id[MAX_SIZE_OF_UNIQUE_CLIENT_ID_BYTES];
 /* populate aws shadow configuration details */
-static int aws_starter_load_configuration(ShadowParameters_t *sp)
+static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
+					  ShadowConnectParameters_t *scp)
 {
 	int ret = WM_SUCCESS;
 	char region[REGION_LEN];
@@ -156,7 +156,7 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 		wmprintf("Failed to configure thing. Returning!\r\n");
 		return -WM_FAIL;
 	}
-	sp->pMyThingName = thing_name;
+	scp->pMyThingName = thing_name;
 
 	/* read device MAC address */
 	ret = read_aws_device_mac(device_mac);
@@ -169,7 +169,8 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 		 "%s-%02x%02x%02x%02x%02x%02x", AWS_IOT_MQTT_CLIENT_ID,
 		 device_mac[0], device_mac[1], device_mac[2],
 		 device_mac[3], device_mac[4], device_mac[5]);
-	sp->pMqttClientId = client_id;
+	scp->pMqttClientId = client_id;
+	scp->mqttClientIdLen = (uint16_t) strlen(client_id);
 
 	/* read configured region name from the persistent memory */
 	ret = read_aws_region(region, REGION_LEN);
@@ -183,6 +184,8 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 	sp->pHost = url;
 	sp->port = AWS_IOT_MQTT_PORT;
 	sp->pRootCA = rootCA;
+	sp->enableAutoReconnect = true;
+	sp->disconnectHandler = NULL;
 
 	/* read configured certificate from the persistent memory */
 	ret = read_aws_certificate(client_cert_buffer, AWS_PUB_CERT_SIZE);
@@ -235,7 +238,7 @@ void led_indicator_cb(const char *p_json_string,
 }
 
 /* Publish thing state to shadow */
-int aws_publish_property_state(ShadowParameters_t *sp)
+int aws_publish_property_state(ShadowConnectParameters_t *sp)
 {
 	char buf_out[BUFSIZE];
 	char state[BUFSIZE];
@@ -290,23 +293,22 @@ static void aws_starter_demo(os_thread_arg_t data)
 {
 	int led_state = 0, ret;
 	jsonStruct_t led_indicator;
-	ShadowParameters_t sp;
+	ShadowInitParameters_t sp;
+	ShadowConnectParameters_t scp;
 
-	aws_iot_mqtt_init(&mqtt_client);
-
-	ret = aws_starter_load_configuration(&sp);
+	ret = aws_starter_load_configuration(&sp, &scp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow configuration failed : %d\r\n", ret);
 		goto out;
 	}
 
-	ret = aws_iot_shadow_init(&mqtt_client);
+	ret = aws_iot_shadow_init(&mqtt_client, &sp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow init failed : %d\r\n", ret);
 		goto out;
 	}
 
-	ret = aws_iot_shadow_connect(&mqtt_client, &sp);
+	ret = aws_iot_shadow_connect(&mqtt_client, &scp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow connect failed : %d\r\n", ret);
 		goto out;
@@ -331,36 +333,15 @@ static void aws_starter_demo(os_thread_arg_t data)
 
 	while (1) {
 		/* Implement application logic here */
-
-		if (device_state == AWS_RECONNECTED) {
-			ret = aws_iot_shadow_init(&mqtt_client);
-			if (ret != WM_SUCCESS) {
-				wmprintf("aws shadow init failed: "
-					 "%d\r\n", ret);
-				goto out;
-			}
-			ret = aws_iot_shadow_connect(&mqtt_client, &sp);
-			if (ret != WM_SUCCESS) {
-				wmprintf("aws shadow reconnect failed: "
-					 "%d\r\n", ret);
-				goto out;
-			} else {
-				device_state = AWS_CONNECTED;
-				led_on(board_led_2());
-				ret = aws_iot_shadow_register_delta(
-					&mqtt_client, &led_indicator);
-				wmprintf("Reconnected to cloud\r\n");
-			}
-		}
 		aws_iot_shadow_yield(&mqtt_client, 10);
-		ret = aws_publish_property_state(&sp);
+		ret = aws_publish_property_state(&scp);
 		if (ret != WM_SUCCESS)
 			wmprintf("Sending property failed\r\n");
 		os_thread_sleep(100);
 	}
 
 	ret = aws_iot_shadow_disconnect(&mqtt_client);
-	if (NONE_ERROR != ret) {
+	if (AWS_SUCCESS != ret) {
 		wmprintf("aws iot shadow error %d\r\n", ret);
 	}
 
@@ -373,14 +354,12 @@ void wlan_event_normal_link_lost(void *data)
 {
 	/* led indication to indicate link loss */
 	aws_iot_shadow_disconnect(&mqtt_client);
-	device_state = AWS_DISCONNECTED;
 }
 
 void wlan_event_normal_connect_failed(void *data)
 {
 	/* led indication to indicate connect failed */
 	aws_iot_shadow_disconnect(&mqtt_client);
-	device_state = AWS_DISCONNECTED;
 }
 
 /* This function gets invoked when station interface connects to home AP.
@@ -394,7 +373,7 @@ void wlan_event_normal_connected(void *data)
 
 	wmprintf("Connected successfully to the configured network\r\n");
 
-	if (!device_state) {
+	if (!aws_starter_thread) {
 		/* set system time */
 		wmtime_time_set_posix(time);
 
@@ -417,11 +396,6 @@ void wlan_event_normal_connected(void *data)
 			return;
 		}
 	}
-
-	if (!device_state)
-		device_state = AWS_CONNECTED;
-	else if (device_state == AWS_DISCONNECTED)
-		device_state = AWS_RECONNECTED;
 }
 
 int main()

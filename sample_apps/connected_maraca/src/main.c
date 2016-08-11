@@ -21,7 +21,7 @@
 #include <wmsdk.h>
 #include <led_indicator.h>
 #include <board.h>
-#include <aws_iot_mqtt_interface.h>
+#include <aws_iot_mqtt_client_interface.h>
 #include <aws_iot_shadow_interface.h>
 #include <aws_utils.h>
 #include <mdev_gpio.h>
@@ -46,7 +46,7 @@ enum state {
 
 /*-----------------------Global declarations----------------------*/
 
-static MQTTClient_t mqtt_client;
+static AWS_IoT_Client mqtt_client;
 static enum state device_state;
 
 /* Thread handle */
@@ -97,7 +97,8 @@ static char private_key_buffer[AWS_PRIV_KEY_SIZE];
 static char thing_name[THING_LEN];
 static char client_id[MAX_SIZE_OF_UNIQUE_CLIENT_ID_BYTES];
 /* populate aws shadow configuration details */
-static int aws_starter_load_configuration(ShadowParameters_t *sp)
+static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
+					  ShadowConnectParameters_t *scp)
 {
 	int ret = WM_SUCCESS;
 	char region[REGION_LEN];
@@ -110,7 +111,7 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 		wmprintf("Failed to configure thing. Returning!\r\n");
 		return -WM_FAIL;
 	}
-	sp->pMyThingName = thing_name;
+	scp->pMyThingName = thing_name;
 
 	/* read device MAC address */
 	ret = read_aws_device_mac(device_mac);
@@ -123,7 +124,8 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 		 "%s-%02x%02x%02x%02x%02x%02x", AWS_IOT_MQTT_CLIENT_ID,
 		 device_mac[0], device_mac[1], device_mac[2],
 		 device_mac[3], device_mac[4], device_mac[5]);
-	sp->pMqttClientId = client_id;
+	scp->pMqttClientId = client_id;
+	scp->mqttClientIdLen = (uint16_t) strlen(client_id);
 
 	/* read configured region name from the persistent memory */
 	ret = read_aws_region(region, REGION_LEN);
@@ -137,6 +139,8 @@ static int aws_starter_load_configuration(ShadowParameters_t *sp)
 	sp->pHost = url;
 	sp->port = AWS_IOT_MQTT_PORT;
 	sp->pRootCA = rootCA;
+	sp->enableAutoReconnect = true;
+	sp->disconnectHandler = NULL;
 
 	/* read configured certificate from the persistent memory */
 	ret = read_aws_certificate(client_cert_buffer, AWS_PUB_CERT_SIZE);
@@ -173,20 +177,19 @@ void shadow_update_status_cb(const char *pThingName, ShadowActions_t action,
 
 
 /* Publish thing state to shadow */
-int aws_publish_property_state(ShadowParameters_t *sp, int8_t x, int8_t y,
+int aws_publish_property_state(ShadowConnectParameters_t *sp, int8_t x, int8_t y,
 			       int8_t z)
 {
 	char buf_out[BUFSIZE];
 	int ret = WM_SUCCESS;
 
-	MQTTPublishParams cmaraca;
+	IoT_Publish_Message_Params cmaraca;
 	snprintf(buf_out, BUFSIZE, "{\"device_id\": \"%s\",\"time\":\"\",\"device\":\"marvelliot\",\"sensors\":[{\"telemetryData\": {\"xval\": %d,\"yval\":%d,\"zval\":%d}}]}",DEVICE_ID, x, y, z);
 	
-	memset(&cmaraca, 0, sizeof(cmaraca));   
-	cmaraca.pTopic = "connected-maraca";
-	cmaraca.MessageParams.pPayload = buf_out;
-	cmaraca.MessageParams.PayloadLen = strlen(buf_out);
-	aws_iot_mqtt_publish(&cmaraca);
+	memset(&cmaraca, 0, sizeof(cmaraca));
+	cmaraca.payload = buf_out;
+	cmaraca.payloadLen = strlen(buf_out);
+	aws_iot_mqtt_publish(&mqtt_client, "connected-maraca", 11, &cmaraca);
 	
 	wmprintf("\r\n%s", buf_out);
 	
@@ -198,23 +201,22 @@ static void connected_maraca(os_thread_arg_t data)
 {
         int ret;
 
-	ShadowParameters_t sp;
+	ShadowInitParameters_t sp;
+	ShadowConnectParameters_t scp;
 
-	aws_iot_mqtt_init(&mqtt_client);
-
-	ret = aws_starter_load_configuration(&sp);
+	ret = aws_starter_load_configuration(&sp, &scp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow configuration failed : %d\r\n", ret);
 		goto out;
 	}
 
-	ret = aws_iot_shadow_init(&mqtt_client);
+	ret = aws_iot_shadow_init(&mqtt_client, &sp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow init failed : %d\r\n", ret);
 		goto out;
 	}
 
-	ret = aws_iot_shadow_connect(&mqtt_client, &sp);
+	ret = aws_iot_shadow_connect(&mqtt_client, &scp);
 	if (ret != WM_SUCCESS) {
 		wmprintf("aws shadow connect failed : %d\r\n", ret);
 		goto out;
@@ -226,13 +228,13 @@ static void connected_maraca(os_thread_arg_t data)
 		/* Implement application logic here */
 
 		if (device_state == AWS_RECONNECTED) {
-			ret = aws_iot_shadow_init(&mqtt_client);
+			ret = aws_iot_shadow_init(&mqtt_client, &sp);
 			if (ret != WM_SUCCESS) {
 				wmprintf("aws shadow init failed: "
 					 "%d\r\n", ret);
 				goto out;
 			}
-			ret = aws_iot_shadow_connect(&mqtt_client, &sp);
+			ret = aws_iot_shadow_connect(&mqtt_client, &scp);
 			if (ret != WM_SUCCESS) {
 				wmprintf("aws shadow reconnect failed: "
 					 "%d\r\n", ret);
@@ -249,7 +251,7 @@ static void connected_maraca(os_thread_arg_t data)
 		static int8_t prev_x, prev_y, prev_z;
 		MMA7660_getXYZ(&x, &y, &z);
 		if( abs(prev_x-x) > THRESHOLD_ACC || abs(prev_y-y)> THRESHOLD_ACC || abs(prev_z-z)> THRESHOLD_ACC) {
-			ret = aws_publish_property_state(&sp, x, y, z);
+			ret = aws_publish_property_state(&scp, x, y, z);
 			wmprintf("\r\n%d, %d, %d\r\n",x,y,z);
 			if (ret != WM_SUCCESS)
 				wmprintf("Sending property failed\r\n");
@@ -263,7 +265,7 @@ static void connected_maraca(os_thread_arg_t data)
 	}
 	
 	ret = aws_iot_shadow_disconnect(&mqtt_client);
-	if (NONE_ERROR != ret) {
+	if (AWS_SUCCESS != ret) {
 		wmprintf("aws iot shadow error %d\r\n", ret);
 	}
 
