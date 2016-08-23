@@ -62,9 +62,17 @@ $(foreach p,$(b-exec-y), $(eval $(call handle_linkerscript,$(p))))
 define handle_lflags
   ifndef $(1)-lflags-y
      $(1)-lflags-y := $(2)
+  else
+     $(1)-lflags-y += $(2)
   endif
 endef
 
 $(foreach p,$(b-exec-cpp-y), $(eval $(call handle_lflags,$(p),$(global-cpp-cflags-y))))
+$(foreach p,$(b-exec-cpp-y), $(eval $(call handle_lflags,$(p),$(tc-cpp-lflags-y))))
+
+ifeq ($(XIP), 1)
+  $(foreach e,$(b-exec-y), $(eval $(e)-cflags-y += -DAPPCONFIG_XIP_ENABLE))
+endif
+
 
 include build/toolchains/virtual_targets_toolchain.mk

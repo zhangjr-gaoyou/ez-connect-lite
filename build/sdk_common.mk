@@ -20,7 +20,7 @@ tc-lto-$(CONFIG_ENABLE_LTO) := y
 
 ######## Default variables
 board_name-$(CONFIG_CPU_MC200) := mc200_8801
-board_name-$(CONFIG_CPU_MW300) := mw300_rd
+board_name-$(CONFIG_CPU_MW300) := mw302_rd
 BOARD ?= $(board_name-y)
 
 arch_name-$(CONFIG_CPU_MC200) := mc200
@@ -62,8 +62,11 @@ t_python ?= $(shell $(t_which) python | tail -1)
 ##################################
 t_kconf  := sdk/tools/bin/$(os_dir)/conf$(file_ext)
 t_mconf  := sdk/tools/bin/$(os_dir)/mconf$(file_ext)
-t_axf2fw := sdk/tools/bin/$(os_dir)/axf2firmware$(file_ext)
 t_mkftfs := sdk/tools/bin/flash_pack.py
+
+# This variable is populated in toolchain specific file.
+# If not populated then it is assigned value below.
+t_axf2fw ?= sdk/tools/bin/$(os_dir)/axf2firmware$(file_ext)
 
 ######## Secure Boot Handling ####
 sec_archs:= mw300

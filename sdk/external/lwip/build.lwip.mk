@@ -3,7 +3,7 @@
 
 libs-y += liblwip
 
-liblwip-cflags-y := -Wno-address
+liblwip-cflags-$(tc-arm_gcc-env-y) := -Wno-address
 
 liblwip-cflags-y+= -DMAX_SOCKETS_TCP=$(CONFIG_MAX_SOCKETS_TCP)
 liblwip-cflags-y+= -DMAX_LISTENING_SOCKETS_TCP=$(CONFIG_MAX_LISTENING_SOCKETS_TCP)
@@ -58,3 +58,4 @@ liblwip-objs-y :=  \
 		src/core/ipv6/inet6.c \
 		src/core/ipv6/icmp6.c
 
+liblwip-supported-toolchain-y := arm_gcc

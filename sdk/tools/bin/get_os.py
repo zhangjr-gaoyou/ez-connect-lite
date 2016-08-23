@@ -9,8 +9,6 @@ def get_system_name():
 		return "Linux"
 	elif any(win in _platform for win in ['win32', 'win64']):
 		return "windows"
-	elif "cygwin" in _platform:
-		return "CYGWIN"
 	elif "darwin" in _platform:
 		return "Darwin"
 	else:

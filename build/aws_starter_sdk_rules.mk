@@ -12,7 +12,6 @@
 # Pull in the standard set of rules
 include build/rules.mk
 include build/extended_rules.mk
--include build/extended_secure_rules.mk
 
 # Add our own (WMSDK-specific) rules on top
 
@@ -28,15 +27,17 @@ $(foreach e,$(b-exec-y), $(eval $(if $($(e)-mfg-cfg-y),$(call clean_mfg_bin_rule
 #--------------Upgrade image creation-----------#
 
 define check_creation_upg_bin
+
 ifneq ($($(1)-upg-img-y),)
-ifeq ($($(1)-upg-cfg-y),)
-$(1)-upg-cfg-y := fw_generator.config
+  ifeq ($($(1)-upg-cfg-y),)
+    $(1)-upg-cfg-y := fw_generator.config
+  endif
+
+  ifeq ($($(1)-upg-crypto-y),)
+    $(1)-upg-crypto-y := chacha20_ed25519
+  endif
 endif
 
-ifeq ($($(1)-upg-crypto-y),)
-$(1)-upg-crypto-y := chacha20_ed25519
-endif
-endif
 endef
 
 $(foreach e,$(b-exec-y), $(eval $(call check_creation_upg_bin,$(e))))
