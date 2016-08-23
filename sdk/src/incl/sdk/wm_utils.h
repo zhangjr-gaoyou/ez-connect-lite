@@ -15,26 +15,14 @@
 #include <wmtypes.h>
 #include <stddef.h>
 #include <stdint.h>
-
-/**
- * Cast a member of a structure out to the containing structure
- *
- * @param[in] ptr The pointer to the member.
- * @param[in] type The type of the container struct this is embedded in.
- * @param[in] member The name of the member within the struct.
- */
-#define container_of(ptr, type, member) ({			\
-	const typeof( ((type *)0)->member ) *__ptr = (ptr);	\
-	(type *)( (char *)__ptr - offsetof(type, member) );})
+#include <compat_attribute.h>
 
 #define ffs __builtin_ffs
-
-#ifdef __GNUC__
 
 /* For PM3 mode in MW300 define special attribute for non-retention memory */
 #if (CONFIG_CPU_MW300) && (CONFIG_ENABLE_MCU_PM3)
 #define PM3_BSS \
-	 __attribute__ ((section(".pm3_bss")))
+	__SECTION__(.pm3_bss)
 #else
 #define PM3_BSS
 #endif
@@ -44,27 +32,30 @@
  */
 #ifdef CONFIG_CPU_MC200
 #define _IOBUFS \
-	__attribute__ ((section(".iobufs")))
+	__SECTION__(.iobufs)
 #define _IOBUFS_ALIGNED(x) \
-	__attribute__ ((section(".iobufs"), aligned(x)))
+	__SECTION__(.iobufs) __ALIGNED__(x)
 #define _IOBUFS_PAGE_ALIGNED(x) \
-	__attribute__ ((section(".iobufs.page_aligned"), aligned(x)))
+	__SECTION__(.iobufs.page_aligned) __ALIGNED__(x)
 
 #elif (CONFIG_CPU_MW300) && !(CONFIG_ENABLE_MCU_PM3)
 #define _IOBUFS
 #define _IOBUFS_ALIGNED(x) \
-	__attribute__ ((aligned(x)))
+	__ALIGNED__(x)
 #define _IOBUFS_PAGE_ALIGNED(x) \
-	__attribute__ ((aligned(x)))
+	__ALIGNED__(x)
 
 #elif (CONFIG_CPU_MW300) && (CONFIG_ENABLE_MCU_PM3)
 #define _IOBUFS \
-	__attribute__ ((section(".pm3_bss")))
+	__SECTION__(.pm3_bss)
 #define _IOBUFS_ALIGNED(x) \
-	__attribute__ ((section(".pm3_bss"), aligned(x)))
+	__SECTION__(.pm3_bss) __ALIGNED__(x)
 #define _IOBUFS_PAGE_ALIGNED(x) \
-	__attribute__ ((section(".pm3_bss"), aligned(x)))
+	__SECTION__(.pm3_bss) __ALIGNED__(x)
+
 #endif
+
+#ifdef __GNUC__
 
 #define WARN_UNUSED_RET __attribute__ ((warn_unused_result))
 #define WEAK __attribute__ ((weak))
@@ -76,6 +67,15 @@
 #define PACK_END __attribute__((packed))
 #endif
 #define NORETURN __attribute__ ((noreturn))
+
+/* alignment value should be a power of 2 */
+#define ALIGN(num, align)  MASK(num, (typeof(num))align - 1)
+
+#define ALIGN_2(num)               ALIGN(num, 2)
+#define ALIGN_4(num)               ALIGN(num, 4)
+#define ALIGN_8(num)               ALIGN(num, 8)
+#define ALIGN_16(num)              ALIGN(num, 16)
+#define ALIGN_32(num)              ALIGN(num, 32)
 
 #else /* __GNUC__ */
 
@@ -89,14 +89,8 @@
 #endif /* __GNUC__ */
 
 /* alignment value should be a power of 2 */
-#define ALIGN(num, align)  MASK(num, (typeof(num))align - 1)
+#define __WM_ALIGN__(num, num_type, align)  MASK(num, (num_type)align - 1)
 #define MASK(num, mask)    ((num + mask) & ~(mask))
-
-#define ALIGN_2(num)               ALIGN(num, 2)
-#define ALIGN_4(num)               ALIGN(num, 4)
-#define ALIGN_8(num)               ALIGN(num, 8)
-#define ALIGN_16(num)              ALIGN(num, 16)
-#define ALIGN_32(num)              ALIGN(num, 32)
 
 NORETURN void wmpanic(void);
 
@@ -289,14 +283,14 @@ char *strdup(const char *s);
  * soft_crc32() allows the user to calculate CRC32 values of arbitrary
  * sized buffers across multiple calls.
  *
- * @param[in] __data Input buffer over which CRC32 is calculated.
+ * @param[in] data__ Input buffer over which CRC32 is calculated.
  * @param[in] data_size Length of the input buffer.
  * @param[in] crc Previous CRC32 value used as starting point for given
  * buffer calculation.
  *
  * @return Calculated CRC32 value
  */
-uint32_t soft_crc32(const void *__data, int data_size, uint32_t crc);
+uint32_t soft_crc32(const void *data__, int data_size, uint32_t crc);
 float wm_strtof(const char *str, char **endptr);
 
 /**

@@ -116,7 +116,7 @@ void rtc_drv_set(mdev_t *dev, uint32_t cnt_upp);
  * \param[in] user_cb application registered callback handler, if func is NULL
  * then the callback is unset.
  */
-void rtc_drv_set_cb(void *user_cb);
+void rtc_drv_set_cb(void (*user_cb)());
 
 /** Set RTC callback handler for Alarm
  *
@@ -125,7 +125,7 @@ void rtc_drv_set_cb(void *user_cb);
  * \param[in] user_cb application registered callback handler, if func is NULL
  * then the callback is unset.
  */
-void rtc_drv_set_alarm_cb(void *user_cb);
+void rtc_drv_set_alarm_cb(void (*user_cb)());
 
 /** Reset RTC counter
  *

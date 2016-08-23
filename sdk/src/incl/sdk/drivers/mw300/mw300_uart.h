@@ -245,7 +245,7 @@ typedef struct
 /** @defgroup UART_ID
  *  @{
  */
-#define IS_UART_ID(UART_ID)              ( (UART_ID >= 0) && ((UART_ID) <= 1) )
+#define IS_UART_ID(UART_ID)              ((UART_ID >= 0) && ((UART_ID) <= 2))
 /*@} end of group UART_ID */
 
 /** @defgroup UART_PARITY

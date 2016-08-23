@@ -15,9 +15,39 @@
  *  All Rights Reserved.
  */
 
+#ifndef __BOARD_H__
+#define __BOARD_H__
+
 #include <wmtypes.h>
 #include <lowlevel_drivers.h>
 #include <generic_io.h>
+
+typedef enum {
+	/** US FCC */
+	BOARD_COUNTRY_US = 1,
+	/** IC Canada */
+	BOARD_COUNTRY_CA,
+	/** Singapore */
+	BOARD_COUNTRY_SG,
+	/** ETSI */
+	BOARD_COUNTRY_EU,
+	/** Australia */
+	BOARD_COUNTRY_AU,
+	/** Republic Of Korea */
+	BOARD_COUNTRY_KR,
+	/** France */
+	BOARD_COUNTRY_FR,
+	/** Japan */
+	BOARD_COUNTRY_JP,
+	/** China */
+	BOARD_COUNTRY_CN,
+} board_country_code_t;
+
+struct pwr_table {
+	const board_country_code_t country;
+	const uint8_t num_of_channels;
+	const uint8_t **table;
+};
 
 /** Frequency of Main Crystal
  *
@@ -99,8 +129,7 @@ int board_32k_osc();
  */
 int board_rc32k_calib();
 
-
-/** Detect the SDIO card
+/** Detect the SDIO card (only for 88MC200)
  *
  * If there is a mechanism to detect the SDIO card on
  * the board, use it here, or else, always return the
@@ -110,7 +139,7 @@ int board_rc32k_calib();
  */
 int board_card_detect();
 
-/** Powerdown the SDIO card
+/** Powerdown the SDIO card (only for 88MC200)
  *
  * If there is a GPIO connected to PDn
  * of the SDIO card, ASSERT it in this function.
@@ -119,7 +148,7 @@ int board_card_detect();
  */
 void board_sdio_pdn();
 
-/** Powerup the SDIO card
+/** Powerup the SDIO card (only for 88MC200)
  *
  * If there is a GPIO connected to PDn
  * of the SDIO card, DE-ASSERT it in this function.
@@ -128,7 +157,7 @@ void board_sdio_pdn();
  */
 void board_sdio_pwr();
 
-/** Reset the SDIO card
+/** Reset the SDIO card (only for 88MC200)
  *
  * If there is a GPIO connected to RST
  * of the SDIO card, ASSERT it for some
@@ -139,35 +168,13 @@ void board_sdio_pwr();
  */
 void board_sdio_reset();
 
-/** Check if PDn pin of the SDIO card can be
- * controlled by HOST MCU
+/** SDIO pin config (only for 88MC200)
  *
- * \return TRUE if it can be controlled, FALSE otherwise
+ * Select which pins will be used for SDIO controller
+ *
+ * Leave Blank if SDIO is not connected on the board.
  */
-int board_sdio_pdn_support();
-
-/** Boot Override Pushbutton
- *
- * \return GPIO pin number connected to the
- * pushbutton to be used for Boot override mode
- * functionality or -WM_FAIL if such pushbutton
- * is not implemented on the board.
- */
-int board_button_3();
-
-/** Push Button Pressed
- *
- * Depending upon how the push button is
- * connected, corresponding GPIO needs to
- * be checked for either set or reset.
- *
- * If no pushbuttons are implemented on the board,
- * always return FALSE (i.e. button not pressed).
- *
- * \param[in] pin GPIO pin to be used
- * \return TRUE if pressed, FALSE otherwise
- */
-int board_button_pressed(int pin);
+void board_sdio_pin_config();
 
 /** Power On GPIO settings
  *
@@ -207,17 +214,23 @@ void board_i2c_pin_config(int id);
  */
 
 void board_ssp_pin_config(int id, bool cs);
+
+/**
+ * Select pin configuration for ADC
+ * \param [in] adc_id
+ * \param [in] channel number
+ */
+int board_adc_pin_config(int adc_id, int channel);
+
+/**
+ * Select pin configuration for DAC
+ * \param [in] channel number
+ */
+void board_dac_pin_config(int channel);
 /**
  * Select pin configuration for USB
  * */
 void board_usb_pin_config();
-/** SDIO pin config
- *
- * Select which pins will be used for SDIO controller
- *
- * Leave Blank if SDIO is not connected on the board.
- */
-void board_sdio_pin_config();
 
 /** Pin number and configuration of
  *  GPIO connected to LED 1
@@ -272,39 +285,28 @@ int board_button_1();
  */
 int board_button_2();
 
-/** Turn LCD backlight off
+/** Boot Override Pushbutton
  *
- * Depending upon how the LCD backlight is controlled
- * corresponding GPIO is to be toggled.
- * Leave Blank if LCD backlight control is not present
- * on the board.
+ * \return GPIO pin number connected to the
+ * pushbutton to be used for Boot override mode
+ * functionality or -WM_FAIL if such pushbutton
+ * is not implemented on the board.
  */
-void board_lcd_backlight_off();
+int board_button_3();
 
-/** Turn LCD backlight on
+/** Push Button Pressed
  *
- * Depending upon how the LCD backlight is controlled
- * corresponding GPIO is to be toggled.
- * Leave Blank if LCD backlight control is not present
- * on the board.
- */
-void board_lcd_backlight_on();
-
-/** Reset LCD
+ * Depending upon how the push button is
+ * connected, corresponding GPIO needs to
+ * be checked for either set or reset.
  *
- * Reset the on-board LCD.
- * Leave Blank if LCD is not present
- * on the board.
+ * If no pushbuttons are implemented on the board,
+ * always return FALSE (i.e. button not pressed).
+ *
+ * \param[in] pin GPIO pin to be used
+ * \return TRUE if pressed, FALSE otherwise
  */
-void board_lcd_reset();
-
-/*
- * Returns  GPIO pin of WIFI card that is used for
- * host wake up on WLAN feature.
- * @return pin_no  used for wakeup
- *        -WM_FAIL in case no pin available
- */
-int board_wifi_host_wakeup();
+int board_button_pressed(int pin);
 
 /**
  *  This function  indicates whether  wakeup 0 pin is functional
@@ -320,16 +322,24 @@ int board_wakeup0_functional();
  */
 int board_wakeup1_functional();
 
+/*
+ * Returns  GPIO pin of WIFI card that is used for
+ * host wake up on WLAN feature. (only for 88MC200)
+ * @return pin_no  used for wakeup
+ *        -WM_FAIL in case no pin available
+ */
+int board_wifi_host_wakeup();
+
 /**
  *  This function indicates whether wakeup 0 pin is connected
- *  to the WiFi chip's host wakeup pin.
+ *  to the WiFi chip's host wakeup pin. (only for 88MC200)
  *   @return   True or False
  */
 int board_wakeup0_wifi();
 
 /**
  *  This function indicates whether wakeup 1 pin is connected
- *  to the WiFi chip's host wakeup pin.
+ *  to the WiFi chip's host wakeup pin. (only for 88MC200)
  *   @return   True or False
  */
 int board_wakeup1_wifi();
@@ -351,3 +361,20 @@ int board_antenna_switch_ctrl();
  *   @return   1 or 2 or 65535
  */
 unsigned int board_antenna_select();
+
+/* This macro defines the SFLL frequency
+ * for the board
+ */
+#define CHIP_SFLL_FREQ() (board_cpu_freq())
+
+/**
+ * This function gets the power table as per the
+ * country specified.
+ *
+ * \param[in] country Country for which power table requested.
+ *
+ * \return power table specific to the country, null if not available.
+ */
+struct pwr_table *board_region_pwr_tbl(board_country_code_t country);
+
+#endif /* __BOARD_H__ */
