@@ -234,13 +234,13 @@ IoT_Error_t iot_tls_read(Network *pNetwork, unsigned char *pMsg, size_t len,
 	int val = -1;
 	int recv_len = 0;
 	fd_set fds;
-	int time_left, error_flag = false, complete_flag = false;
+	int error_flag = false, complete_flag = false;
+	unsigned int timeout = timer->timeout;
 
 	FD_ZERO(&fds);
 	FD_SET(pNetwork->my_socket, &fds);
 	setsockopt(pNetwork->my_socket, SOL_SOCKET, SO_RCVTIMEO,
-		   (void *)&pNetwork->tlsConnectParams.timeout_ms,
-		   sizeof(pNetwork->tlsConnectParams.timeout_ms));
+		   &timeout, sizeof(timeout));
 
 	do {
 		if (tls_handle) {
@@ -256,8 +256,7 @@ IoT_Error_t iot_tls_read(Network *pNetwork, unsigned char *pMsg, size_t len,
 		if (recv_len >= len) {
 			complete_flag = true;
 		}
-		time_left = left_ms(timer);
-	} while (!error_flag && !complete_flag && time_left > 0);
+	} while (!error_flag && !complete_flag);
 
 	*read_len = recv_len;
 	if (0 == *read_len && error_flag) {

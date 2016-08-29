@@ -25,7 +25,7 @@ $(foreach t,$(b-supported-toolchain-y),$(eval $(call init-tc-vars,$(t))))
 
 define handle-tc-list
   ifndef $(2)-supported-toolchain-y
-    b-gcc-$(3)-y += $(2).$(4)
+    b-arm_gcc-$(3)-y += $(2).$(4)
   else
     ifneq ($(filter $(1),$($(2)-supported-toolchain-y)),)
       b-$(1)-$(3)-y += $(2).$(4)
@@ -42,12 +42,12 @@ $(foreach t,$(b-supported-toolchain-y),$(eval $(call get-tc-vars,$(t))))
 #--------------------------------------------------------------#
 
 # This function will filter-out common things from gcc libs and apps
-define prune-gcc-vars
-  b-gcc-libs-y := $(filter-out $(b-$(1)-libs-y),$(b-gcc-libs-y))
-  b-gcc-exec-y := $(filter-out $(b-$(1)-exec-y),$(b-gcc-exec-y))
+define prune-arm_gcc-vars
+  b-arm_gcc-libs-y := $(filter-out $(b-$(1)-libs-y),$(b-arm_gcc-libs-y))
+  b-arm_gcc-exec-y := $(filter-out $(b-$(1)-exec-y),$(b-arm_gcc-exec-y))
 endef
 
-$(foreach t,$(filter-out gcc,$(b-supported-toolchain-y)),$(eval $(call prune-gcc-vars,$(t))))
+$(foreach t,$(filter-out arm_gcc,$(b-supported-toolchain-y)),$(eval $(call prune-arm_gcc-vars,$(t))))
 #--------------------------------------------------------------#
 
 # This function creates toolchain specific target for libs and apps

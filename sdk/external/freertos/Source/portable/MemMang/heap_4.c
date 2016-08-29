@@ -66,6 +66,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <wmstdio.h>
+#include <compat_attribute.h>
 
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
@@ -92,6 +94,10 @@ task.h is included from an application file. */
  */
 /* #define DEBUG_HEAP_EXTRA */
 #endif /* DEBUG_HEAP */
+
+#ifdef DEBUG_HEAP_EXTRA
+#warning "Please note that the crypto operations using Big Numbers will fail as DEBUG_HEAP_EXTRA is enabled"
+#endif
 
 #ifdef ALLOC_TRACE
 #define ATRACE wmprintf
@@ -187,7 +193,7 @@ typedef struct A_BLOCK_LINK
 	/* To know who allocated this block */
 	void *xCallerAddr;
 #endif /* DEBUG_HEAP_EXTRA */
-} __attribute__((__may_alias__)) xBlockLink;
+} __MAY_ALIAS__ xBlockLink;
 
 
 static const unsigned short  heapSTRUCT_SIZE	= ( sizeof( xBlockLink )) + portBYTE_ALIGNMENT -

@@ -105,6 +105,12 @@ char *asctime(const struct tm *tm);
  */
 extern int wmtime_init(void);
 
+/** Get current wmtime initialization status
+ *
+ *\return true if initialized, false if not.
+ */
+bool is_wmtime_init_done();
+
 /**
  * Register wmtime cli commands for the application use
  *

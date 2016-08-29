@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2014, Marvell International Ltd.
+ * Copyright (C) 2008-2016, Marvell International Ltd.
  * All Rights Reserved.
  *
  * The same linkers script is used for both C and C++. C++ specific sections
@@ -16,6 +16,11 @@ _estack = 0x20020000;    /* end of 128K SRAM1 */
 
 /* Minimum required heap size in bytes */
 _heap_size = (72 * 1024);
+
+/* The offset at which text segment starts in the binary image, this should
+ * not be modified: => sizeof(img_hdr) + (SEG_CNT * sizeof(seg_hdr))
+ */
+_text_offset = 0xc8;
 
 /* Flash controller memory mapped start address */
 _flashc_mem_start = 0x1f000000;
@@ -43,15 +48,50 @@ _keystore_start = ORIGIN(SRAM0) + LENGTH(SRAM0) - _keystore_size;
 
 SECTIONS
 {
-	.text :
+	.init :
 	{
-		. = ALIGN(256);
+		. = ALIGN(512);
 		KEEP(*(.isr_vector))
+		KEEP(*(.text.Default_IRQHandler*))
+		KEEP(*(.text.HardFault_IRQHandler*))
+		*mw300_flash.o (.text .text.* .rodata .rodata.*)
+		*mw300_qspi.o (.text .text.* .rodata .rodata.*)
+		*mw300_pmu.o (.text .text.* .rodata .rodata.*)
+		*mdev_pm.o (.text .text.* .rodata .rodata.*)
+		*mw300_clock.o (.text .text.* .rodata .rodata.*)
+		*(.ram .ram.*)
+		. = ALIGN(4);
+	} > SRAM0
+
+	/* move  bss of specific libraries
+	 * to SRAM0 to mnake space in SRAM1
+	 */
+	.bss_sram0 (NOLOAD):
+	{
+		_bss_sram0 = .;
+		*libwifidriver.a:(.bss .bss.*)
+		. = ALIGN(4);
+		_ebss_sram0 = .;
+	} > SRAM0
+
+	/* Heap Section. */
+	. = ALIGN(4);
+	_heap_start = .;
+	. = _keystore_start;
+	_heap_end = .;
+	PROVIDE (end = .);
+
+	.keystore _keystore_start :
+	{
+		. = . + _keystore_size;
+	}
+
+	.text (_flashc_mem_start + _text_offset + SIZEOF(.init)):
+	{
 		. = ALIGN(4);
 
 		*(.text.Reset_IRQHandler)
 		*(.text .text.* .gnu.linkonce.t.*)
-		*(.ram .ram.*)
 		*(.rodata .rodata.* .gnu.linkonce.r.*)
 		. = ALIGN(4);
 		/* C++: DWARF Exception Header. */
@@ -96,7 +136,7 @@ SECTIONS
 
 		. = ALIGN(8);
 		_etext = .;
-	} > SRAM0
+	}
 
 	/* Contains information for unwinding the stack */
 	.ARM.exidx (_etext)   :
@@ -114,18 +154,6 @@ SECTIONS
 	     *(.ARM.extab* .gnu.linkonce.armextab.*)
 	 }
 
-	/* Heap Section. */
-	. = ALIGN(4);
-	_heap_start = .;
-	. = _keystore_start;
-	_heap_end = .;
-	PROVIDE (end = .);
-
-	.keystore _keystore_start :
-	{
-		. = . + _keystore_size;
-	}
-
 	.rom_data (NOLOAD) :
 	{
 		_rom_data_start = .;
@@ -142,14 +170,17 @@ SECTIONS
 		_edata = .;
 	} > SRAM1
 
-	.bss (NOLOAD):
+	.bss_sram1 (NOLOAD):
 	{
-		_bss = .;
+		_bss_sram1 = .;
 		*(.bss)
 		*(.bss.*)
 		*(COMMON)
-		_ebss = .;
+		_ebss_sram1 = .;
 	} > SRAM1
+
+	/* Assure min. required size for main stack in SRAM1 */
+	ASSERT(_ebss_sram1 < _main_stack_start, "Insufficient space for main stack.")
 
 	/* Add the free space in SRAM1 to our heap */
 	_heap_2_start = .;

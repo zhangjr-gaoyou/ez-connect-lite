@@ -4,5 +4,3 @@
 global-cflags-y += -I$(d)/include
 
 -include $(d)/build.aws_iot.mk
-
-

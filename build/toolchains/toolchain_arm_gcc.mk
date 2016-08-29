@@ -15,29 +15,25 @@ HOST_CC := gcc
 
 ######### Common Linker File Handling
 # This can be overriden from the apps
-global-linkerscript-y := build/toolchains/GNU/$(arch_name-y).ld
+global-linkerscript-y := build/toolchains/arm_gcc/$(arch_name-y).ld
 
 # Toolchain specific global cflags-y
 global-cflags-y :=
 
-######### XIP Handling
-ifeq ($(XIP), 1)
-  global-linkerscript-y := build/toolchains/GNU/$(arch_name-y)-xip.ld
-  global-linkerscript-$(CONFIG_ENABLE_MCU_PM3) := build/toolchains/GNU/$(arch_name-y)-xip-pm3.ld
-  global-cflags-y += -DCONFIG_XIP_ENABLE
-endif
 
 compiler-version := $(shell $(CC) -dumpversion)
 ifneq ($(compiler-version),4.9.3)
   $(error " Please use: $(CC) 2015 q3 version")
 endif
 
+# FORCE option for execution
+tc-force-opt := FORCE
 # Compiler environment variable
-tc-env := GCC
-tc-gcc-env-y := y
+tc-env := arm_gcc
+tc-arm_gcc-env-y := y
 
-tc-install-dir-y := for_gcc
-tc-install-dir-$(use_extd_libc) := for_extd
+tc-install-dir-y := for_arm_gcc
+tc-install-dir-$(USE_EXTD_LIBC) := for_extd
 
 # define disable-lto-for empty
 disable-lto-for :=
@@ -74,7 +70,6 @@ tc-lflags-$(tc-cortex-m4-y) += \
 tc-lflags-$(tc-cortex-m3-y) += -mcpu=cortex-m3
 tc-lflags-$(tc-cortex-m4-y) += -mcpu=cortex-m4
 
-
 global-cflags-y += \
 		-mthumb -g -Os \
 		-fdata-sections \
@@ -92,15 +87,22 @@ global-cflags-$(tc-cortex-m4-y) += \
 global-cflags-$(tc-cortex-m3-y) += -mcpu=cortex-m3
 global-cflags-$(tc-cortex-m4-y) += -mcpu=cortex-m4
 
+# cpp specific compiler and linker flags
+ifeq ($(CONFIG_ENABLE_CPP_SUPPORT),y)
 global-cpp-cflags-y := \
 		-D_Bool=bool \
 		-std=c++1y \
 		--specs=nosys.specs
 
+tc-cpp-lflags-y := \
+		-Wl,--wrap,malloc -Wl,--wrap,free -Wl,--wrap,calloc \
+		-Wl,--wrap,realloc -Wl,--wrap,printf
+endif
+
 global-c-cflags-y := -fgnu89-inline
 
 ##############################################
-## GCC Tololchain specific rules
+## ARM_GCC Tololchain specific rules
 
 # The command for converting a .c/.cc/.cpp/.S/.s to .o
 # arg1 the .c/.cc/.cpp/.S/.s filename
@@ -110,24 +112,24 @@ global-c-cflags-y := -fgnu89-inline
 # build output directory to the corresponding .c/.cc/.cpp/.S/.s file in the src directory
 #
 define b-cmd-c-to-o
-  @echo " [cc] $(1)"
-  $(AT)$(CC) $(b-trgt-cflags-y) $(global-cflags-y) $(global-c-cflags-y) -o $(2) -c $(1) -MMD
+$(CC) $(b-trgt-cflags-y) $(tc-include-opt) $(global-preinclude-y) $(b-trgt-c-cflags-y) $(global-cflags-y) $(global-c-cflags-y) -o $(2) -c $(1) -MMD
+endef
+
+define b-cmd-s-to-o
+$(AS) $(b-trgt-cflags-y) $(tc-include-opt) $(global-preinclude-y) $(b-trgt-c-cflags-y) $(global-cflags-y) $(global-c-cflags-y) -o $(2) -c $(1) -MMD
 endef
 
 ifneq ($(CONFIG_ENABLE_CPP_SUPPORT),)
 define b-cmd-cpp-to-o
-  @echo " [cpp] $@"
-  $(AT)$(CPP) $(b-trgt-cflags-y) $(global-cflags-y) $(global-cpp-cflags-y) -o $(2) -c $(1) -MMD
+$(CPP) $(b-trgt-cflags-y) $(tc-include-opt) $(global-preinclude-y) $(b-trgt-cpp-cflags-y) $(global-cflags-y) $(global-cpp-cflags-y) -o $(2) -c $(1) -MMD
 endef
 endif
 
 define b-cmd-axf
-  @echo " [axf] $(call b-abspath,$(2))"
-  $(AT)$($(1)-LD) -o $(2) $($(1)-objs-y) $($(1)-lflags-y) $($(1)-cflags-y) -Xlinker --start-group $($(1)-prebuilt-libs-y) $($(1)-libs-paths-y) $(global-prebuilt-libs-y) -Xlinker --end-group -T $($(1)-linkerscript-y) -Xlinker -M -Xlinker -Map -Xlinker $(2:%.axf=%.map) $(tc-lflags-y) $(global-cflags-y)
+$($(1)-LD) -o $(2) $($(1)-objs-y) $($(1)-lflags-y) -Xlinker --start-group $($(1)-prebuilt-libs-y) $($(1)-libs-paths-y) $(global-prebuilt-libs-y) -Xlinker --end-group -T $($(1)-linkerscript-y) -Xlinker -M -Xlinker -Map -Xlinker $(2:%.axf=%.map) $(tc-lflags-y) $(global-cflags-y)
 endef
 
+
 define b-cmd-archive
-  @echo " [ar] $(1)"
-  $(AT)$(AR) cru $(1) $(2)
+$(AR) cru $(2) $($(1)-objs-y)
 endef
-##############################################

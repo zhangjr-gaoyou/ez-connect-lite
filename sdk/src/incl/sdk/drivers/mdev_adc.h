@@ -90,6 +90,20 @@ int adc_drv_init(ADC_ID_Type adc_id);
   */
 void adc_get_config(ADC_CFG_Type *config);
 
+
+#if defined(CONFIG_CPU_MW300)
+/** Get adc driver configuration
+  *
+  * This function configures adc to measure internal temperature sensor.
+  * \param[in] adc_id The ADC to be initialized.
+  * \param[in] dev mdev handle to the driver to be closed.
+  * \param[in] Temperature sensor mode.
+  * \param[in] ADC input mode.
+  */
+void adc_drv_tsensor_config(ADC_ID_Type adcID, mdev_t *mdev_p,
+		ADC_TSensorMode_Type adcTSensorMode,
+		ADC_InputMode_Type adcInputMode);
+#endif
 /** Modify default ADC configuration
   *
   * This function allows the user to over-ride the default parameter/s

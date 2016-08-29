@@ -22,6 +22,7 @@
 #  - change .c with .o
 #  - add $(b-output-dir-y)/ as a prefix, so all the objects are in a directory together
 #    note that this requires a corresponding stripping of $(b-output-dir-y)/ in the %.o:%.c rule
+$(foreach l,$(libs-y),$(eval $(l)-objs-all-y := $(foreach s,$($(l)-objs-y),$(subst $(escape_let),$(escape_dir_name),$(d))/$(s))))
 $(foreach l,$(libs-y),$(eval $(l)-objs-y := $(foreach s,$($(l)-objs-y),$(b-objs-output-dir-y)/$(subst $(escape_let),$(escape_dir_name),$(d))/$(s:%.c=%.o))))
 $(foreach l,$(libs-y),$(eval $(l)-objs-y := $(foreach s,$($(l)-objs-y),$(s:%.S=%.o))))
 $(foreach l,$(libs-y),$(eval $(l)-objs-y := $(foreach s,$($(l)-objs-y),$(s:%.cc=%.o))))
@@ -34,11 +35,12 @@ b-object-dir-y += $(foreach l,$(libs-y),$(sort $(dir $($(l)-objs-y))))
 b-libs-paths-y += $(foreach l,$(libs-y),$(b-libs-output-dir-y)/$(l).a)
 
 # Copy the dependencies
-b-deps-y +=  $(foreach l,$(libs-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.d)))
+b-deps-y += $(foreach l,$(libs-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.d)))
+b-deps-y += $(foreach l,$(libs-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.o.cmd)))
 
-# Nullify libs-y
-b-libs-y += $(libs-y)
-libs-y=
+$(foreach l,$(libs-y),$(eval $(l)-dir-y := $(d)))
+
+b-deps-y += $(foreach l,$(libs-y),$(b-libs-output-dir-y)/$(l).a.cmd)
 
 ### Programs
 # Board file handling
@@ -48,6 +50,7 @@ libs-y=
 
 exec-y += $(exec-cpp-y)
 $(foreach l,$(exec-y),$(eval $(l)-board-y ?= $(BOARD_FILE)))
+$(foreach l,$(exec-y),$(eval $(l)-objs-all-y := $($(l)-board-y) $(foreach s,$($(l)-objs-y),$(subst $(escape_let),$(escape_dir_name),$(d))/$(s))))
 $(foreach l,$(exec-y),$(eval $(l)-objs-y += $(notdir $($(l)-board-y))))
 $(foreach l,$(exec-y),$(eval $(l)-output-dir-y := $(BIN_DIR)/$(notdir ${$(l)-board-y:.c=})))
 
@@ -67,7 +70,9 @@ b-object-dir-y += $(foreach l,$(exec-y),$(sort $(dir $($(l)-objs-y))))
 b-exec-apps-y += $(foreach l,$(exec-y),$(l).app)
 
 # Copy the dependencies
-b-deps-y +=  $(foreach l,$(exec-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.d)))
+b-deps-y += $(foreach l,$(exec-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.d)))
+b-deps-y += $(foreach l,$(exec-y),$(foreach s,$($(l)-objs-y),$(s:%.o=%.o.cmd)))
+
 $(foreach l,$(exec-y),$(eval $(l)-dir-y := $(d)))
 
 # Assigning ld options for exec-y and exec-cpp-y, which is used for axf
@@ -75,8 +80,17 @@ $(foreach l,$(exec-y),$(eval $(l)-dir-y := $(d)))
 $(foreach l,$(exec-y),$(eval $(l)-LD := $(LD)))
 $(foreach l,$(exec-cpp-y),$(eval $(l)-LD := $(CPP)))
 
+b-deps-y += $(foreach e,$(exec-y),$($(e)-output-dir-y)/$(e).axf.cmd)
+
+# Unify variables
+
 b-exec-y += $(exec-y)
 b-exec-cpp-y += $(exec-cpp-y)
+b-libs-y += $(libs-y)
 
-exec-y=
-exec-cpp-y=
+# Nullify variables
+
+exec-y :=
+exec-cpp-y :=
+libs-y :=
+

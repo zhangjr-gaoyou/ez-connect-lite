@@ -503,12 +503,6 @@ static inline void os_exit_critical_section(unsigned long state)
 	taskEXIT_CRITICAL();
 }
 
-/* Note: Below call should not be made static, otherwise it breaks
- * IAR compilation.
- */
-inline void os_disable_all_interrupts();
-inline void os_enable_all_interrupts();
-
 /*** Tick function */
 #define MAX_CUSTOM_HOOKS	4
 
@@ -719,21 +713,15 @@ static inline int os_mutex_get(os_mutex_t *mhandle, unsigned long wait)
 static inline int os_mutex_put(os_mutex_t *mhandle)
 {
 	int ret;
-	signed portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+	ASSERT(!is_isr_context());
+
 	if (!mhandle || !(*mhandle))
 		return -WM_E_INVAL;
 
 	os_dprintf("OS: Mutex Put: %p\r\n", *mhandle);
 
-	if (is_isr_context()) {
-		/* This call is from Cortex-M3 handler mode, i.e. exception
-		 * context, hence use FromISR FreeRTOS APIs.
-		 */
-		ret = xSemaphoreGiveFromISR(*mhandle,
-					    &xHigherPriorityTaskWoken);
-		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-	} else
-		ret = xSemaphoreGive(*mhandle);
+	ret = xSemaphoreGive(*mhandle);
 	return ret == pdTRUE ? WM_SUCCESS : -WM_FAIL;
 }
 
@@ -1542,6 +1530,20 @@ static inline void os_dump_mem_stats(void)
 	os_exit_critical_section(sta);
 }
 
+/** This function returns the size of biggest free block
+ *  available in heap.
+ */
+static inline size_t os_mem_get_free_size(void)
+{
+	unsigned sta = os_enter_critical_section();
+
+	const heapAllocatorInfo_t *hI = getheapAllocInfo();
+
+	os_exit_critical_section(sta);
+
+	return hI->biggestFreeBlockAvailable;
+}
+
 /*** OS thread system information ***/
 
 void os_dump_threadinfo(char *name);
@@ -1631,5 +1633,18 @@ void _os_delay(int cnt);
  * fit. Failing to do this may cause memory data corruption.
  */
 #define os_get_runtime_stats(__buff__) vTaskGetRunTimeStats(__buff__)
+
+/** Disables all interrupts at NVIC level */
+static inline void os_disable_all_interrupts()
+{
+	taskDISABLE_INTERRUPTS();
+}
+
+/** Enable all interrupts at NVIC lebel */
+static inline void os_enable_all_interrupts()
+{
+	taskENABLE_INTERRUPTS();
+}
+
 
 #endif /* ! _WM_OS_H_ */

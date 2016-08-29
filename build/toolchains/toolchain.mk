@@ -7,10 +7,11 @@
 #
 # 	Sets up list of supported toolchains
 #	It also includes appropriate toolchain file
-#	based on input from user, default toolchain is gcc.
+#	based on input from user, default toolchain is arm_gcc.
 
-toolchain ?= gcc
-b-supported-toolchain-y := gcc iar
+TOOLCHAIN ?= arm_gcc
+toolchain := $(TOOLCHAIN)
+b-supported-toolchain-y := arm_gcc
 
 define toolchain_error_log
 

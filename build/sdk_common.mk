@@ -20,7 +20,7 @@ tc-lto-$(CONFIG_ENABLE_LTO) := y
 
 ######## Default variables
 board_name-$(CONFIG_CPU_MC200) := mc200_8801
-board_name-$(CONFIG_CPU_MW300) := mw300_rd
+board_name-$(CONFIG_CPU_MW300) := mw302_rd
 BOARD ?= $(board_name-y)
 
 arch_name-$(CONFIG_CPU_MC200) := mc200
@@ -42,28 +42,31 @@ global-cflags-y += \
 	 -Isdk/src/incl/sdk/drivers/$(arch_name-y)      \
 	 -Isdk/src/incl/sdk/drivers/$(arch_name-y)/regs \
 	 -Isdk/src/incl/sdk/drivers/wlan                \
-	 -Isdk/src/incl/libc/GCC
+	 -Isdk/src/incl/libc/$(tc-env)
 
 ######### Tools
-t_cp    := "$(shell which cp | tail -1)"
-t_mv    := "$(shell which mv | tail -1)"
-t_cmp   := "$(shell which cmp | tail -1)"
-t_mkdir := "$(shell which mkdir | tail -1)"
-t_cat   := "$(shell which cat | tail -1)"
-t_rm    := "$(shell which rm | tail -1)"
-t_printf := "$(shell which printf | tail -1)"
-t_python := "$(shell which python | tail -1)"
-
-##################################
-
 # Step 3: Handle development host specific options
 # devhost is towards the end, so it can override stuff defined from above
 include build/host/devhost.mk
 
+t_which ?= which
+t_cp    ?= $(shell $(t_which) cp | tail -1)
+t_mv    ?= $(shell $(t_which) mv | tail -1)
+t_cmp   ?= $(shell $(t_which) cmp | tail -1)
+t_mkdir ?= $(shell $(t_which) mkdir | tail -1)
+t_cat   ?= $(shell $(t_which) cat | tail -1)
+t_rm    ?= $(shell $(t_which) rm | tail -1)
+t_printf ?= $(shell $(t_which) printf | tail -1)
+t_python ?= $(shell $(t_which) python | tail -1)
+
+##################################
 t_kconf  := sdk/tools/bin/$(os_dir)/conf$(file_ext)
 t_mconf  := sdk/tools/bin/$(os_dir)/mconf$(file_ext)
-t_axf2fw := sdk/tools/bin/$(os_dir)/axf2firmware$(file_ext)
 t_mkftfs := sdk/tools/bin/flash_pack.py
+
+# This variable is populated in toolchain specific file.
+# If not populated then it is assigned value below.
+t_axf2fw ?= sdk/tools/bin/$(os_dir)/axf2firmware$(file_ext)
 
 ######## Secure Boot Handling ####
 sec_archs:= mw300

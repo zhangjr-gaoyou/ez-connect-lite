@@ -31,9 +31,9 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <jsmn.h>
 
 #include "aws_iot_error.h"
+#include "jsmn.h"
 
 // utility functions
 /**

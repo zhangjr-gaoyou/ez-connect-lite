@@ -4,8 +4,10 @@
 os_dir := Windows
 file_ext := .exe
 
-ifneq ($(MAKE_VERSION),4.1)
-  $(error "Please use make version 4.1")
+make_version_check-$(tc-arm_gcc-env-y) := $(shell expr $(MAKE_VERSION) \< 4.1)
+
+ifeq ($(make_version_check-y),1)
+  $(error "Please use make version 4.1 or higher")
 endif
 
 ######################################

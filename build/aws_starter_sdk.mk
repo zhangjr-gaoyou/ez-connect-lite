@@ -13,11 +13,9 @@
 # illustrates features exposed by SDK
 b-examples-path-y := sample_apps
 
-BOARD ?= mw302_rd
-
 include build/sdk_common.mk
-#################################################
 
+#################################################
 # BOARD_FILE handling
 
 ifdef BOARD_FILE
@@ -25,10 +23,12 @@ ifdef BOARD_FILE
 endif
 
 BOARD_FILE ?= sdk/src/boards/$(BOARD).c
+
+global-cflags-y += -Isdk/src/boards
 #################################################
 
 ######### SDK Version
-SDK_VERSION_INTERNAL ?= 3.3
+SDK_VERSION_INTERNAL ?= 3.5
 SDK_VERSION :=\"$(SDK_VERSION_INTERNAL)$(EXTRA_SDK_VERSION)\"
 global-cflags-y += -DSDK_VERSION=$(SDK_VERSION)
 
