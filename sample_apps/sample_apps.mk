@@ -10,3 +10,7 @@ subdir-y                         += sample_apps/io_demo/adc
 subdir-y                         += sample_apps/io_demo/gpio
 subdir-y                         += sample_apps/io_demo/uart/uart_echo_demo
 subdir-y                         += sample_apps/net_demo/ntpc_demo
+subdir-y			 += sample_apps/io_demo/ssp/simple/master_demo
+subdir-y			 += sample_apps/io_demo/ssp/simple/slave_demo
+subdir-y			 += sample_apps/io_demo/i2c/simple/master_demo
+subdir-y			 += sample_apps/io_demo/i2c/simple/slave_demo
