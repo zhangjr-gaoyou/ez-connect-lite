@@ -22,9 +22,6 @@ global-cflags-y :=
 
 
 compiler-version := $(shell $(CC) -dumpversion)
-ifneq ($(compiler-version),4.9.3)
-  $(error " Please use: $(CC) 2015 q3 version")
-endif
 
 # FORCE option for execution
 tc-force-opt := FORCE
