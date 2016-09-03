@@ -5,7 +5,7 @@
 # Eclipse wrapper/helper script to modify eclipse project files.
 import os, sys, getopt, re
 
-interfaces = ['ftdi', 'jlink', 'amontec', 'malink']
+interfaces = ['ftdi', 'stlink']
 debug_if = ''
 layout_file = ''
 new_pr_name = ''
@@ -21,7 +21,7 @@ def print_usage():
     print " [-C | --directory] <path/to/dir>"
     print "          Change current working directory to <path/to/dir>"
     print " [<-i | --interface> <JTAG hardware interface name>]"
-    print "          Supported ones are ftdi, jlink, amontec, malink. Default is ftdi."
+    print "          Supported ones are ftdi, and stlink."
     print " [<-L | --Layout> </path/to/layout_file>]"
     print "          Layout file <layout_file> to use for flashing"
     print " [<-p | --project> <New project name>]"
