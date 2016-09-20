@@ -294,5 +294,5 @@ IoT_Error_t iot_tls_destroy(Network *pNetwork)
 
 IoT_Error_t iot_tls_is_connected(Network *pNetwork)
 {
-	return true;
+	return  NETWORK_PHYSICAL_LAYER_CONNECTED;
 }

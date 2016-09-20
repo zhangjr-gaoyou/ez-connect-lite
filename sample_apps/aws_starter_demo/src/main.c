@@ -333,7 +333,15 @@ static void aws_starter_demo(os_thread_arg_t data)
 
 	while (1) {
 		/* Implement application logic here */
-		aws_iot_shadow_yield(&mqtt_client, 10);
+		ret = aws_iot_shadow_yield(&mqtt_client, 10);
+		if (ret != WM_SUCCESS) {
+			wmprintf("AWS IoT shadow yield failure %d\r\n", ret);
+			led_fast_blink(board_led_2());
+			os_thread_sleep(os_msec_to_ticks(5000));
+			continue;
+		}
+		led_on(board_led_2());
+
 		ret = aws_publish_property_state(&scp);
 		if (ret != WM_SUCCESS)
 			wmprintf("Sending property failed\r\n");
