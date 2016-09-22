@@ -92,8 +92,8 @@ IoT_Error_t aws_iot_shadow_add_desired(char *pJsonDocument, size_t maxSizeOfJson
 	size_t remSizeOfJsonBuffer = maxSizeOfJsonDocument;
 	int32_t snPrintfReturn = 0;
 	va_list pArgs;
+	jsonStruct_t *pTemporary = NULL;
 	va_start(pArgs, count);
-	jsonStruct_t *pTemporary;
 
 	if(pJsonDocument == NULL) {
 		return NULL_VALUE_ERROR;
@@ -153,9 +153,9 @@ IoT_Error_t aws_iot_shadow_add_reported(char *pJsonDocument, size_t maxSizeOfJso
 	size_t remSizeOfJsonBuffer = maxSizeOfJsonDocument;
 	int32_t snPrintfReturn = 0;
 	size_t tempSize = 0;
+	jsonStruct_t *pTemporary;
 	va_list pArgs;
 	va_start(pArgs, count);
-	jsonStruct_t *pTemporary;
 
 	if(pJsonDocument == NULL) {
 		return NULL_VALUE_ERROR;
@@ -412,10 +412,10 @@ bool isReceivedJsonValid(const char *pJsonDocument) {
 }
 
 bool extractClientToken(const char *pJsonDocument, char *pExtractedClientToken) {
-	jsmn_init(&shadowJsonParser);
 	int32_t tokenCount, i;
 	uint8_t length;
 	jsmntok_t ClientJsonToken;
+	jsmn_init(&shadowJsonParser);
 
 	tokenCount = jsmn_parse(&shadowJsonParser, pJsonDocument, strlen(pJsonDocument), jsonTokenStruct,
 							sizeof(jsonTokenStruct) / sizeof(jsonTokenStruct[0]));
