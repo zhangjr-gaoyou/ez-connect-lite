@@ -121,8 +121,7 @@ void board_dac_pin_config(int channel)
 output_gpio_cfg_t board_led_1()
 {
   output_gpio_cfg_t gcfg = {
-    .gpio = GPIO_40,
-    .type = GPIO_ACTIVE_LOW,
+    .gpio = -1,
   };
   return gcfg;
 }
@@ -130,7 +129,8 @@ output_gpio_cfg_t board_led_1()
 output_gpio_cfg_t board_led_2()
 {
 	output_gpio_cfg_t gcfg = {
-		.gpio = -1,
+    .gpio = GPIO_40,
+    .type = GPIO_ACTIVE_LOW,
 	};
 
 	return gcfg;
