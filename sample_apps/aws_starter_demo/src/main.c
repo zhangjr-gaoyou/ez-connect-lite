@@ -334,11 +334,18 @@ static void aws_starter_demo(os_thread_arg_t data)
 	while (1) {
 		/* Implement application logic here */
 		ret = aws_iot_shadow_yield(&mqtt_client, 10);
-		if (ret != WM_SUCCESS) {
-			wmprintf("AWS IoT shadow yield failure %d\r\n", ret);
+		if (ret == NETWORK_ATTEMPTING_RECONNECT) {
+			wmprintf("Device trying to reconnect to AWS IoT cloud"
+				 "\r\n");
 			led_fast_blink(board_led_2());
 			os_thread_sleep(os_msec_to_ticks(5000));
 			continue;
+		} else if (ret == NETWORK_RECONNECTED) {
+			wmprintf("Device reconnected to AWS IoT cloud\r\n");
+			led_on(board_led_2());
+		} else if (ret != AWS_SUCCESS) {
+			wmprintf("AWS IoT shadow yield failure %d\r\n", ret);
+			goto out;
 		}
 		led_on(board_led_2());
 
