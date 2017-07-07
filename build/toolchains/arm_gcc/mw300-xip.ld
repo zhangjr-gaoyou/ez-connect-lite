@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2016, Marvell International Ltd.
+ * Copyright (C) 2008-2017, Marvell International Ltd.
  * All Rights Reserved.
  *
  * The same linkers script is used for both C and C++. C++ specific sections
@@ -70,6 +70,7 @@ SECTIONS
 	{
 		_bss_sram0 = .;
 		*libwifidriver.a:(.bss .bss.*)
+		*libmbedtls.a:(.bss .bss.*)
 		. = ALIGN(4);
 		_ebss_sram0 = .;
 	} > SRAM0
