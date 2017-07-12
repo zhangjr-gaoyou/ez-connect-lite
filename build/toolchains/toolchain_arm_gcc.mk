@@ -1,4 +1,4 @@
-# Copyright (C) 2008-2016, Marvell International Ltd.
+# Copyright (C) 2008-2017, Marvell International Ltd.
 # All Rights Reserved.
 
 CROSS_COMPILE := arm-none-eabi-
@@ -20,8 +20,11 @@ global-linkerscript-y := build/toolchains/arm_gcc/$(arch_name-y).ld
 # Toolchain specific global cflags-y
 global-cflags-y :=
 
-
-compiler-version := $(shell $(CC) -dumpversion)
+######### XIP Handling
+ifeq ($(XIP), 1)
+  global-linkerscript-y := build/toolchains/arm_gcc/$(arch_name-y)-xip.ld
+  global-linkerscript-$(CONFIG_ENABLE_MCU_PM3) := build/toolchains/arm_gcc/$(arch_name-y)-xip-pm3.ld
+endif
 
 # FORCE option for execution
 tc-force-opt := FORCE
@@ -49,10 +52,13 @@ tc-lflags-y := \
 		-Xlinker --cref \
 		-Xlinker --gc-sections
 
+_mrvl_build_time ?= $(shell date +%s)
+
 # Linker flags
 tc-lflags-$(tc-lto-y) += -Xlinker -flto
 tc-lflags-$(tc-cortex-m4-y) += \
 		-Xlinker --defsym=_rom_data=64 \
+		-Xlinker --defsym=_latest_time=$(_mrvl_build_time) \
 		-mthumb -g -Os \
 		-fdata-sections \
 		-ffunction-sections \
@@ -75,6 +81,14 @@ global-cflags-y += \
 		-MMD -Wall \
 		-fno-strict-aliasing \
 		-fno-common
+
+global-cflags-y += \
+		-Wextra \
+		-Wno-unused-parameter \
+		-Wno-empty-body \
+		-Wno-missing-field-initializers \
+		-Wno-sign-compare \
+		-Wno-type-limits \
 
 global-cflags-$(tc-cortex-m4-y) += \
 		-mfloat-abi=softfp \
@@ -130,3 +144,4 @@ endef
 define b-cmd-archive
 $(AR) cru $(2) $($(1)-objs-y)
 endef
+##############################################
