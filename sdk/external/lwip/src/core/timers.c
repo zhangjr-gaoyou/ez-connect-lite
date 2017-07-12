@@ -112,24 +112,6 @@ tcp_timer_needed(void)
 }
 #endif /* LWIP_TCP */
 
-#ifndef CONFIG_BONJ_CONFORMANCE
-#if LWIP_ARP
-/**
- * Timer callback function that calls etharp_tmr() and reschedules itself.
- *
- * @param arg unused argument
- */
-static void
-arp_timer(void *arg)
-{
-  LWIP_UNUSED_ARG(arg);
-  LWIP_DEBUGF(TIMERS_DEBUG, ("tcpip: etharp_tmr()\n"));
-  etharp_tmr();
-  sys_timeout(ARP_TMR_INTERVAL, arp_timer, NULL);
-}
-#endif /* LWIP_ARP */
-#endif /* !CONFIG_BONJ_CONFORMANCE */
-
 #if LWIP_DHCP
 /**
  * Timer callback function that calls dhcp_coarse_tmr() and reschedules itself.
@@ -146,22 +128,6 @@ dhcp_timer_coarse(void *arg)
 }
 
 #endif /* LWIP_DHCP */
-
-#if LWIP_AUTOIP
-/**
- * Timer callback function that calls autoip_tmr() and reschedules itself.
- *
- * @param arg unused argument
- */
-static void
-autoip_timer(void *arg)
-{
-  LWIP_UNUSED_ARG(arg);
-  LWIP_DEBUGF(TIMERS_DEBUG, ("tcpip: autoip_tmr()\n"));
-  autoip_tmr();
-  sys_timeout(AUTOIP_TMR_INTERVAL, autoip_timer, NULL);
-}
-#endif /* LWIP_AUTOIP */
 
 
 #if LWIP_IPV6
@@ -199,17 +165,9 @@ ip6_reass_timer(void *arg)
 /** Initialize this module */
 void sys_timeouts_init(void)
 {
-#ifndef CONFIG_BONJ_CONFORMANCE
-#if LWIP_ARP
-  sys_timeout(ARP_TMR_INTERVAL, arp_timer, NULL);
-#endif /* LWIP_ARP */
-#endif /* !CONFIG_BONJ_CONFORMANCE */
 #if LWIP_DHCP
   sys_timeout(DHCP_COARSE_TIMER_MSECS, dhcp_timer_coarse, NULL);
 #endif /* LWIP_DHCP */
-#if LWIP_AUTOIP
-  sys_timeout(AUTOIP_TMR_INTERVAL, autoip_timer, NULL);
-#endif /* LWIP_AUTOIP */
 #if LWIP_IPV6
   sys_timeout(ND6_TMR_INTERVAL, nd6_timer, NULL);
 #if LWIP_IPV6_REASS

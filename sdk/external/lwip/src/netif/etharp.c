@@ -57,10 +57,8 @@
 #include "netif/etharp.h"
 #include "lwip/ip6.h"
 
-#ifdef CONFIG_BONJ_CONFORMANCE
-/* Added for timer fucntions */
+/* Added for timer functions */
 #include "lwip/timers.h"
-#endif /* CONFIG_BONJ_CONFORMANCE */
 
 #if PPPOE_SUPPORT
 #include "netif/ppp_oe.h"
@@ -150,7 +148,6 @@ static u8_t etharp_cached_entry;
   #error "ARP_TABLE_SIZE must fit in an s8_t, you have to reduce it in your lwipopts.h"
 #endif
 
-#ifdef CONFIG_BONJ_CONFORMANCE
 /**
  * Timer callback function that calls etharp_tmr() and reschedules itself.
  *
@@ -164,8 +161,6 @@ arp_timer(void *arg)
   etharp_tmr();
   sys_timeout(ARP_TMR_INTERVAL, arp_timer, NULL);
 }
-#endif /* CONFIG_BONJ_CONFORMANCE */
-
 
 #if ARP_QUEUEING
 /**
@@ -730,7 +725,6 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
   /* these are aligned properly, whereas the ARP header fields might not be */
   ip_addr_t sipaddr, dipaddr;
   u8_t for_us;
-#ifdef CONFIG_BONJ_CONFORMANCE
   /* Before beginning to use an IPv4 address, host need to check if that address
    * is already in use by sending ARP probe packets. While probing if similar
    * probe packet is observed to be sent by other host in the network, then it
@@ -740,7 +734,6 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
    * This case is described in detail in RFC 5227 Section 2.1.1
    */
   u8_t conflicting_probe = 0;
-#endif /* CONFIG_BONJ_CONFORMANCE */
 #if LWIP_AUTOIP
   const u8_t * ethdst_hwaddr;
 #endif /* LWIP_AUTOIP */
@@ -797,7 +790,6 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
   /* this interface is not configured? */
   if (ip_addr_isany(&netif->ip_addr)) {
     for_us = 0;
-#ifdef CONFIG_BONJ_CONFORMANCE
 	/* Check for the occurance of conflicting ARP Probe while acquiring
 	 * IP address using DHCP, as per Section 2.1.1 of RFC 5227.
 	 */
@@ -818,7 +810,6 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
 			conflicting_probe = \
 				(u8_t)ip_addr_cmp(&(netif->dhcp->offered_ip_addr), &dipaddr);
 	}
-#endif /* CONFIG_BONJ_CONFORMANCE */
   } else {
     /* ARP packet directed to us? */
     for_us = (u8_t)ip_addr_cmp(&dipaddr, &(netif->ip_addr));
@@ -829,16 +820,12 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
          can result in directly sending the queued packets for this host.
      ARP message not directed to us?
       ->  update the source IP address in the cache, if present */
-#ifdef CONFIG_BONJ_CONFORMANCE
 	if (!conflicting_probe)
-#endif /* CONFIG_BONJ_CONFORMANCE */
 		etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
 			for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
-#ifdef CONFIG_BONJ_CONFORMANCE
 	else
 		etharp_update_arp_entry(netif, &dipaddr, &(hdr->shwaddr),
 			conflicting_probe ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
-#endif /* CONFIG_BONJ_CONFORMANCE */
 
   /* now act on the message itself */
   switch (hdr->opcode) {
@@ -885,10 +872,8 @@ etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
       /* return ARP reply */
       netif->linkoutput(netif, p);
     /* we are not configured? */
-#ifdef CONFIG_BONJ_CONFORMANCE
     } else if (conflicting_probe) {
 		dhcp_arp_reply(netif, &dipaddr);
-#endif /* CONFIG_BONJ_CONFORMANCE */
     } else if (ip_addr_isany(&netif->ip_addr)) {
       /* { for_us == 0 and netif->ip_addr.addr == 0 } */
       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: we are unconfigured, ARP request ignored.\n"));
@@ -1158,7 +1143,6 @@ etharp_query(struct netif *netif, ip_addr_t *ipaddr, struct pbuf *q)
 
   /* do we have a new entry? or an implicit query request? */
   if (is_new_entry || (q == NULL)) {
-#ifdef CONFIG_BONJ_CONFORMANCE
     /* try to resolve it; send out ARP request */
 	/* Before sending ARP request, disable ARP timer, which otherwise
 	 * gets called periodically. It then sends ARP requests for ARP
@@ -1171,11 +1155,8 @@ etharp_query(struct netif *netif, ip_addr_t *ipaddr, struct pbuf *q)
 	 * between two ARP requests is at least PROBE_MIN period
 	 */
 	sys_untimeout(arp_timer, NULL);
-#endif /* CONFIG_BONJ_CONFORMANCE */
     result = etharp_request(netif, ipaddr);
-#ifdef CONFIG_BONJ_CONFORMANCE
 	sys_timeout(ARP_TMR_INTERVAL, arp_timer, NULL);
-#endif /* CONFIG_BONJ_CONFORMANCE */
     if (result != ERR_OK) {
       /* ARP request couldn't be sent */
       /* We don't re-send arp request in etharp_tmr, but we still queue packets,

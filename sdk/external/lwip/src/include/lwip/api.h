@@ -160,7 +160,7 @@ typedef void (* netconn_callback)(struct netconn *, enum netconn_evt, u16_t len)
 #if LWIP_RECV_CB
 /** A callback function for the application which, if registered, is executed
     when a socket receives data. */
-	typedef void (* netconn_recv_callback)(int sockfd, void *recv_cb_data);
+typedef void (* netconn_recv_callback)(int sockfd, void *recv_cb_data, int len, int state);
 #endif
 
 /** A netconn descriptor */

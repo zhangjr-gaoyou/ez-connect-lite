@@ -88,6 +88,11 @@ struct autoip
   u8_t tried_llipaddr;      /* total number of probed/used Link Local IP-Addresses */
 };
 
+struct timervals            /* structure to keep track of autoip timer */
+{
+  u8_t unbound_interfaces_exist; /* variable keeping track of interfaces */
+  u8_t timer_scheduled_flag;       /* flag keeping running status of the timer */
+};
 
 #define autoip_init() /* Compatibility define, no init needed. */
 

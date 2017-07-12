@@ -56,6 +56,7 @@
 #include "lwip/ip6_addr.h"
 #include "lwip/nd6.h"
 
+#include <wm_utils.h>
 #include <string.h>
 
 #ifndef TCP_LOCAL_PORT_RANGE_START
@@ -133,7 +134,14 @@ void
 tcp_init(void)
 {
 #if LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS && defined(LWIP_RAND)
-  tcp_port = TCP_ENSURE_LOCAL_PORT_RANGE(LWIP_RAND());
+	unsigned char buf[2];
+
+	/* Call to random_register_seed_handler
+	 * and random_initialize_seed should be done
+	 * by application */
+	get_random_sequence(buf, 2);
+	memcpy(&tcp_port, buf, 2);
+	tcp_port = TCP_ENSURE_LOCAL_PORT_RANGE(tcp_port);
 #endif /* LWIP_RANDOMIZE_INITIAL_LOCAL_PORTS && defined(LWIP_RAND) */
 }
 

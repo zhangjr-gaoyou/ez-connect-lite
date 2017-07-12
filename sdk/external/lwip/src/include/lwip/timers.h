@@ -91,7 +91,6 @@ void sys_restart_timeouts(void);
 void sys_timeouts_mbox_fetch(sys_mbox_t *mbox, void **msg);
 #endif /* NO_SYS */
 
-
 #ifdef __cplusplus
 }
 #endif

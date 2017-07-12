@@ -1543,7 +1543,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
     case NETCONN_EVT_RCVPLUS:
 #if LWIP_RECV_CB
   if (conn->recv_callback) {
-	  conn->recv_callback(s, conn->recv_cb_data);
+	  conn->recv_callback(s, conn->recv_cb_data, len, conn->pcb.tcp->state);
   }
 #endif
       sock->rcvevent++;

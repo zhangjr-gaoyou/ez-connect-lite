@@ -55,7 +55,7 @@
  *
  * Without DHCP:
  * - Call autoip_start() after netif_add().
- * 
+ *
  * With DHCP:
  * - define LWIP_DHCP_AUTOIP_COOP 1 in your lwipopts.h.
  * - Configure your DHCP Client.
@@ -72,6 +72,7 @@
 #include "lwip/netif.h"
 #include "lwip/autoip.h"
 #include "netif/etharp.h"
+#include "lwip/timers.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +83,6 @@
 #define AUTOIP_RANGE_START (AUTOIP_NET | 0x0100)
 /* 169.254.254.255 */
 #define AUTOIP_RANGE_END   (AUTOIP_NET | 0xFEFF)
-
 
 /** Pseudo random macro based on netif informations.
  * You could use "rand()" from the C Library if you define LWIP_AUTOIP_RAND in lwipopts.h */
@@ -103,6 +103,9 @@
   htonl(AUTOIP_RANGE_START + ((u32_t)(((u8_t)(netif->hwaddr[4])) | \
                  ((u32_t)((u8_t)(netif->hwaddr[5]))) << 8)))
 #endif /* LWIP_AUTOIP_CREATE_SEED_ADDR */
+
+/* variable to keep track of autoip_tmr */
+static struct timervals autoip_tmr_state;
 
 /* static functions */
 static void autoip_handle_arp_conflict(struct netif *netif);
@@ -125,6 +128,9 @@ static void autoip_start_probing(struct netif *netif);
 /* Storing the IP address acquired through Auto-IP, which can be used for
  * restoring in case of link-loss etc. */
 static ip_addr_t prev_llipaddr;
+
+/* Autoip timer callback function */
+static void autoip_timer(void *arg);
 
 /** Set a statically allocated struct autoip to work with.
  * Using this prevents autoip_start to allocate it using mem_malloc.
@@ -367,8 +373,12 @@ autoip_start_probing(struct netif *netif)
   if (autoip->tried_llipaddr >= MAX_CONFLICTS) {
     autoip->ttw = RATE_LIMIT_INTERVAL * AUTOIP_TICKS_PER_SECOND;
   }
-
   autoip->state = AUTOIP_STATE_PROBING;
+  autoip_tmr_state.unbound_interfaces_exist += 1;
+  if (!autoip_tmr_state.timer_scheduled_flag) {
+	  sys_timeout (AUTOIP_TMR_INTERVAL, autoip_timer, NULL);
+	  autoip_tmr_state.timer_scheduled_flag = 1;
+  }
 }
 
 /**
@@ -397,6 +407,24 @@ autoip_stop(struct netif *netif)
   netif->autoip->state = AUTOIP_STATE_OFF;
   netif_set_down(netif);
   return ERR_OK;
+}
+
+/**
+ * Timer callback function that calls autoip_tmr() and reschedules itself.
+ *
+ * @param arg unused argument
+ */
+void
+autoip_timer(void *arg)
+{
+  autoip_tmr_state.timer_scheduled_flag = 0;
+  LWIP_UNUSED_ARG(arg);
+  LWIP_DEBUGF(AUTOIP_DEBUG, ("tcpip: autoip_tmr()\n"));
+  autoip_tmr();
+  if (autoip_tmr_state.unbound_interfaces_exist) {
+    sys_timeout(AUTOIP_TMR_INTERVAL, autoip_timer, NULL);
+    autoip_tmr_state.timer_scheduled_flag = 1;
+  }
 }
 
 /**
@@ -470,9 +498,10 @@ autoip_tmr()
 
             if (netif->autoip->sent_num >= ANNOUNCE_NUM) {
                 netif->autoip->state = AUTOIP_STATE_BOUND;
+		autoip_tmr_state.unbound_interfaces_exist--;
                 netif->autoip->sent_num = 0;
                 netif->autoip->ttw = 0;
-				netif->autoip->tried_llipaddr = 0;
+		netif->autoip->tried_llipaddr = 0;
                 netif_send_status(netif);
                  LWIP_DEBUGF(AUTOIP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE,
                     ("autoip_tmr(): changing state to BOUND: %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
@@ -547,7 +576,7 @@ autoip_arp_reply(struct netif *netif, struct etharp_hdr *hdr)
 	 * Clear stored address only if it was not announced */
 		if (netif->autoip->state != AUTOIP_STATE_BOUND)
 			memset(&prev_llipaddr, 0, sizeof(ip_addr_t));
-        autoip_handle_arp_conflict(netif);
+		autoip_handle_arp_conflict(netif);
       }
     }
   }
