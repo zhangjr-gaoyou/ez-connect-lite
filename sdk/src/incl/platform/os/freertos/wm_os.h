@@ -31,7 +31,7 @@
  *    os_mem_free().
  *
  */
-/* Copyright 2008-2015, Marvell International Ltd.
+/* Copyright 2008-2017, Marvell International Ltd.
  * All Rights Reserved.
  */
 
@@ -81,7 +81,7 @@ static inline uint32_t os_get_usec_counter()
 }
 
 /** Force a context switch */
-#define os_thread_relinquish() taskYIELD();
+#define os_thread_relinquish() taskYIELD()
 
 /** Get current OS tick counter value
  *
@@ -190,9 +190,20 @@ static inline const char *get_current_taskname()
  * @return WM_SUCCESS if thread was created successfully
  * @return -WM_FAIL if thread creation failed
  */
-int os_thread_create(os_thread_t *thandle, const char *name,
-		     void (*main_func) (os_thread_arg_t arg), void *arg,
-		     os_thread_stack_t *stack, int prio);
+static inline int os_thread_create(os_thread_t *thandle, const char *name,
+		     void (*main_func)(os_thread_arg_t arg),
+		     void *arg, os_thread_stack_t *stack, int prio)
+{
+	int ret;
+
+	ret = xTaskCreate(main_func, name, stack->size, arg, prio, thandle);
+
+	os_dprintf(" Thread Create: ret %d thandle %p"
+		   " stacksize = %d\r\n", ret,
+		   thandle ? *thandle : NULL, stack->size);
+	return ret == pdPASS ? WM_SUCCESS : -WM_FAIL;
+
+}
 
 static inline os_thread_t os_get_current_task_handle()
 {
@@ -824,7 +835,58 @@ static inline int os_mutex_delete(os_mutex_t *mhandle)
 	return WM_SUCCESS;
 }
 
+/*** Event Notification ***/
 
+/**
+ * Wait for task notification
+ *
+ * This function waits for task notification from other task or interrupt
+ * context. This is similar to binary semaphore, but uses less RAM and much
+ * faster than semaphore mechanism
+ *
+ * @param[in] wait_time Timeout specified in no. of OS ticks
+ *
+ * @return WM_SUCCESS when notification is successful
+ * @return -WM_FAIL on failure or timeout
+ */
+static inline int os_event_notify_get(unsigned long wait_time)
+{
+	int ret = ulTaskNotifyTake(pdTRUE, wait_time);
+	return ret == pdTRUE ? WM_SUCCESS : -WM_FAIL;
+}
+
+/**
+ * Give task notification
+ *
+ * This function gives task notification so that waiting task can be
+ * unblocked. This is similar to binary semaphore, but uses less RAM and much
+ * faster than semaphore mechanism
+ *
+ * @param[in] task Task handle to be notified
+ *
+ * @return WM_SUCCESS when notification is successful
+ * @return -WM_FAIL on failure or timeout
+ */
+static inline int os_event_notify_put(os_thread_t task)
+{
+	int ret = pdTRUE;
+	signed portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+	if (!task)
+		return -WM_E_INVAL;
+
+	if (is_isr_context()) {
+		/* This call is from Cortex-M3/4 handler mode, i.e. exception
+		 * context, hence use FromISR FreeRTOS APIs.
+		 */
+		vTaskNotifyGiveFromISR(task, &xHigherPriorityTaskWoken);
+		portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+	} else {
+		ret = xTaskNotifyGive(task);
+	}
+
+	return ret == pdTRUE ? WM_SUCCESS : -WM_FAIL;
+}
 
 /*** Semaphore ***/
 
@@ -922,6 +984,7 @@ static inline int os_semaphore_get(os_semaphore_t *mhandle, unsigned long wait)
 		ret = xSemaphoreTake(*mhandle, wait);
 	return ret == pdTRUE ? WM_SUCCESS : -WM_FAIL;
 }
+
 /** Release semaphore
  *
  * This function releases a semaphore previously acquired using

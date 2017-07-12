@@ -5,7 +5,7 @@
  */
 
 /*
- *  Copyright 2008-2015, Marvell International Ltd.
+ *  Copyright 2008-2017, Marvell International Ltd.
  *  All Rights Reserved.
  */
 #ifndef _WMSDK_H_
@@ -13,6 +13,7 @@
 
 #include <wmstdio.h>
 #include <wm_utils.h>
+#include <mbedtls/ssl.h>
 
 /** Connect to an Access Point using the ssid and passphrase
  *
@@ -45,6 +46,15 @@ int wm_wlan_connect(char *ssid, char *psk);
  * \return negative error code otherwise
  */
 int wm_wlan_start(char *my_ssid, char *my_wpa2_passphrase);
+
+/** Callback function when Wi-Fi is initialized.
+ *
+ * This function gets invoked when Wi-Fi interface is initialized. Data holds
+ * the device state whether it is provisioned or not. If device state is 1, that
+ * indicates device is provisioned and if it is 0, indicates device is not
+ * provisioned.
+ */
+WEAK void wlan_event_wifi_initialized(void *data);
 
 /** Callback function when Wi-Fi station is connected
  *
@@ -81,5 +91,113 @@ int invoke_reset_to_factory();
 
 /** These APIs are left undocumented for now */
 void wm_wlan_set_httpd_handlers(void *hdlrs, int no);
+
+typedef struct wm_tls_handle {
+	void *ptr;
+} wm_tls_handle_t;
+
+/** Representation of a TLS Certificate */
+typedef struct wm_tls_cert {
+	/** The buffer that holds the certificate */
+	const unsigned char *cert;
+	/** The size of the data in the buffer pointed to above */
+	unsigned int         cert_size;
+} wm_tls_cert_t;
+
+/** Representation of a TLS Key */
+typedef struct wm_tls_key {
+	/** The buffer that holds the certificate */
+	const unsigned char *key;
+	/** The size of the data in the buffer pointed to above */
+	unsigned int         key_size;
+} wm_tls_key_t;
+
+/** Open a simple TLS client for communication
+ *
+ * This can be used for performing read/write operations over a TLS connection.
+ *
+ * \param[in] handle Pointer to a wm_tls_handle_t data type
+ * \param[in] ca_cert Pointer to a buffer containing the CA certificate
+ * \param[in] client_cert Pointer to a buffer containing the Client certificate
+ * \param[in] client_key Pointer to a buffer containing the Client key
+ * \param[in] sock_fd The connected TCP socket to be associated with this TLS
+ * session
+ *
+ * \return WM_SUCCESS on success
+ * \return negative error code otherwise
+ */
+int wm_tls_client_open(wm_tls_handle_t *handle,
+		       wm_tls_cert_t *ca_cert,
+		       wm_tls_cert_t *client_cert,
+		       wm_tls_key_t *client_key,
+		       int sock_fd);
+/** Read from a TLS session
+ *
+ * \param[in] handle The handle returned from wm_tls_client_open
+ * \param[in] data Pointer to the buffer to read data
+ * \param[in] sz The maximum size of the buffer
+ *
+ * \return number of bytes read from the session
+ * \return negative error code otherwise
+ */
+int wm_tls_client_read(wm_tls_handle_t *handle, void* data, int sz);
+
+/** Write to a TLS session
+ *
+ * \param[in] handle The handle returned from wm_tls_client_open
+ * \param[in] data Pointer to the buffer to write data
+ * \param[in] sz The size of the data to be written
+ *
+ * \return number of bytes written to the session
+ * \return negative error code otherwise
+ */
+int wm_tls_client_write(wm_tls_handle_t *handle, const void* data, int sz);
+
+/** Close a TLS session
+ *
+ * \param[in] handle The handle to be closed
+ *
+ */
+void wm_tls_client_close(wm_tls_handle_t *handle);
+
+/** Reset SSL internal timer
+ *
+ * \param[in] handle The handle returned from wm_tls_client_open
+ */
+void wm_tls_reset_read_timer(wm_tls_handle_t *handle);
+
+/** Set SSL read timeout
+ *
+ * \param[in] handle The handle returned from wm_tls_client_open
+ * \param[in] timeout Desired timeout value to be set
+ */
+void wm_tls_set_read_timeout(wm_tls_handle_t *handle, uint32_t timeout);
+
+/** Setup a simple TLS client context
+ *
+ * \param[in] handle Pointer to a wm_tls_handle_t data type
+ * \param[in] ca_cert Pointer to a buffer containing the CA certificate
+ * \param[in] client_cert Pointer to a buffer containing the Client certificate
+ * \param[in] client_key Pointer to a buffer containing the Client key
+ * \param[in] sock_fd The connected TCP socket to be associated with this TLS
+ * session
+ *
+ * \return SSL context from handle on success
+ * \return NULL otherwise
+ */
+mbedtls_ssl_context *wm_tls_client_setup(wm_tls_handle_t *handle,
+		wm_tls_cert_t *ca_cert,
+		wm_tls_cert_t *client_cert,
+		wm_tls_key_t *client_key,
+		int sock_fd);
+
+/** Perform SSL connection based on parameters set in handle
+ *
+ * \param[in] handle Pointer to a wm_tls_handle_t data type
+ *
+ * \return WM_SUCCESS on success
+ * \return negative error code otherwise
+ */
+int wm_tls_connect(wm_tls_handle_t *handle);
 
 #endif /* ! _WMSDK_H_ */

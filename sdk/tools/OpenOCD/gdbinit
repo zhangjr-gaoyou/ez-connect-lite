@@ -18,6 +18,7 @@ set history save
 
 echo Connected to the board...\n
 echo Use command 'debug' to debug an application from main()\n
+echo Use command 'xip-debug' to debug an xip application from main()\n
 echo Continue using gdb for 'live debug'\n
 
 # Function to reset the board, load and debug the application from main()
@@ -30,4 +31,15 @@ continue
 end
 document debug
 Resets the board, loads the application and stops at main()
+end
+
+# Function to reset the board, debug the xip application from main()
+# Can be used multiple times in same session
+define xip-debug
+reset
+tb main
+continue
+end
+document xip-debug
+Resets the board and stops at (xip) application main()
 end

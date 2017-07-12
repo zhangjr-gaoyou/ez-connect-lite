@@ -22,3 +22,10 @@ end
 document hf_restore
 Restores cpu context to the instruction that caused the hard fault
 end
+
+define wdt_disable
+set *(uint32_t *) 0x480A007c |= (1 << 23)
+end
+document wdt_disable
+Disables watchdog timer clock
+end

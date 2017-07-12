@@ -42,17 +42,6 @@ typedef uint64_t u_int64_t;
 /* Time related */
 typedef signed int sbintime_t;
 
-/* Required by cyassl build */
-typedef long off_t;
-typedef short dev_t;
-typedef unsigned short ino_t;
-typedef unsigned short nlink_t;
-typedef unsigned short uid_t;
-typedef unsigned short mode_t;
-typedef unsigned short gid_t;
-typedef signed char pid_t;
-typedef unsigned long useconds_t;
-
 /*
  * Some headers seem to require this...
  */
