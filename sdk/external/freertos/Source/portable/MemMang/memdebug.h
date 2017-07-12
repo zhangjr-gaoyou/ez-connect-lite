@@ -9,7 +9,7 @@
  */
 
 
-static const unsigned PREV_MAGIC = 0xCAFED00D;
+static const unsigned PREV_MAGIC = 0xFACEB00C;
 static const unsigned NEXT_MAGIC = 0x00C0FFEEL;
 
 #define GUARD_BYTES 4

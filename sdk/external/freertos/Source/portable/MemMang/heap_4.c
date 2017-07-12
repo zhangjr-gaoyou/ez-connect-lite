@@ -387,14 +387,27 @@ static inline void prvInsertBlockIntoFreeList( xBlockLink * pxBlockToInsert )
 }
 /*-----------------------------------------------------------*/
 
-#define WMSDK_HEAP_START_ADDR (unsigned char *)&_heap_start
-#define WMSDK_HEAP_SIZE ((unsigned)&_heap_end - (unsigned)&_heap_start)
+#ifdef __ICCARM__
+
+extern unsigned RAM0_END;
+#pragma section = "HEAP_1"
+
+#define WMSDK_HEAP_START_ADDR (__section_begin("HEAP_1"))
+#define WMSDK_HEAP_SIZE \
+	((unsigned) &RAM0_END - (unsigned) WMSDK_HEAP_START_ADDR)
+
+#else
+
+#define WMSDK_HEAP_START_ADDR (&_heap_start)
+#define WMSDK_HEAP_SIZE ((unsigned) &_heap_end - (unsigned) &_heap_start)
+
+#endif /* __ICCARM__ */
 
 void prvHeapInit()
 {
 	xBlockLink *pxFirstFreeBlock;
 
-	xHeap.ucHeap = WMSDK_HEAP_START_ADDR;
+	xHeap.ucHeap = (unsigned char *) WMSDK_HEAP_START_ADDR;
 	configTOTAL_HEAP_SIZE = WMSDK_HEAP_SIZE;
 	xFreeBytesRemaining = configTOTAL_HEAP_SIZE;
 	
@@ -843,8 +856,8 @@ int vHeapSelfTest( int trace )
 		int totalSize = 0;
 		if( trace ) {
 #ifdef DEBUG_HEAP_EXTRA
-			DTRACE( "%s%11s%11s%11s%11s%11s%11s\n\r",
-					"TAG", "Next Free", "Prev Block", "Block Size", 
+			DTRACE( "%s%11s%11s%11s%11s%11s%11s%11s\n\r",
+					"TAG", "My Addr", "Next Free", "Prev Block", "Block Size", 
 					"Act. Size", "Caller", "Block Type");
 #else /* ! DEBUG_HEAP_EXTRA */
 			DTRACE( "%s%11s%11s%11s%11s%11s\n\r",
@@ -860,8 +873,8 @@ int vHeapSelfTest( int trace )
 	        while( max_sane_blocks-- ) {
 			if( trace ) {
 #ifdef DEBUG_HEAP_EXTRA
-				DTRACE( "HST%11x%11x%11d%11d%11x ",
-						pxBlock->pxNextFreeBlock, pxBlock->pxPrev, 
+				DTRACE( "HST%11x%11x%11x%11d%11d%11x ",
+						pxBlock, pxBlock->pxNextFreeBlock, pxBlock->pxPrev, 
 						BLOCK_SIZE( pxBlock ), GET_ACTUAL_SIZE( pxBlock ),
 						GET_CALLER_ADDR( pxBlock ) );
 #else /* ! DEBUG_HEAP_EXTRA */
