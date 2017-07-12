@@ -21,8 +21,8 @@
  * Starting point for porting the SDK to the threading hardware layer of a new platform.
  */
 
+#include <wm_os.h>
 #include "aws_iot_config.h"
-
 #ifdef _ENABLE_THREAD_SUPPORT_
 #ifndef __THREADS_INTERFACE_H_
 #define __THREADS_INTERFACE_H_
@@ -31,21 +31,18 @@
 extern "C" {
 #endif
 
-/**
- * The platform specific timer header that defines the Timer struct
- */
-#include "threads_platform.h"
-
 #include <aws_iot_error.h>
 
 /**
  * @brief Mutex Type
  *
- * Forward declaration of a mutex struct.  The definition of this struct is
- * platform dependent.  When porting to a new platform add this definition
- * in "threads_platform.h".
+ * Definition of the Mutex struct. Platform specific
  *
  */
+struct _IoT_Mutex_t {
+	os_mutex_t lock;
+};
+
 typedef struct _IoT_Mutex_t IoT_Mutex_t;
 
 /**

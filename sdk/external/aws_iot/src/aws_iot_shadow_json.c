@@ -341,6 +341,7 @@ bool isJsonValidAndParse(const char *pJsonDocument, void *pJsonHandler, int32_t 
 	}
 
 	pJsonHandler = (void *) jsonTokenStruct;
+	(void) pJsonHandler;
 	*pTokenCount = tokenCount;
 
 	return true;

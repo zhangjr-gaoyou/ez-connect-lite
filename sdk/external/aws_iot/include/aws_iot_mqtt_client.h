@@ -182,7 +182,7 @@ typedef struct {
 extern const IoT_Client_Init_Params iotClientInitParamsDefault;
 
 #ifdef _ENABLE_THREAD_SUPPORT_
-#define IoT_Client_Init_Params_initializer { true, NULL, 0, NULL, NULL, NULL, 2000, 20000, 5000, true, NULL, NULL, false }
+#define IoT_Client_Init_Params_initializer { true, NULL, 0, NULL, NULL, NULL, 2000, 20000, 5000, true, NULL, NULL, true }
 #else
 #define IoT_Client_Init_Params_initializer { true, NULL, 0, NULL, NULL, NULL, 2000, 20000, 5000, true, NULL, NULL }
 #endif
