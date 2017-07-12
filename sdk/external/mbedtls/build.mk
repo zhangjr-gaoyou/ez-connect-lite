@@ -78,4 +78,4 @@ global-cflags-y += \
 	-I$(d)/config \
 	-DMBEDTLS_CONFIG_FILE='<$(MBEDTLS_CONFIG).h>'
 
-libmbedtls-supported-toolchain-y := arm_gcc iar
+libmbedtls-supported-toolchain-y := arm_gcc

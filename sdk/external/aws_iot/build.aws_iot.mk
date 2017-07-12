@@ -9,4 +9,4 @@ libaws_iot-objs-y := $(wildcard $(aws_iot_src_dir)/*.c) $(d)/platform/wmsdk/time
 
 libaws_iot-objs-y := $(libaws_iot-objs-y:$(d)/%=%)
 
-libaws_iot-supported-toolchain-y := arm_gcc iar
+libaws_iot-supported-toolchain-y := arm_gcc

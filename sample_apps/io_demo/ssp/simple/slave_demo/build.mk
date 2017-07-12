@@ -8,4 +8,4 @@ ssp_slave_demo-objs-y := src/main.c
 #<app-name>-board-y := /path/to/boardfile
 #<app-name>-linkerscript-y := /path/to/linkerscript
 
-ssp_slave_demo-supported-toolchain-y := arm_gcc iar
+ssp_slave_demo-supported-toolchain-y := arm_gcc

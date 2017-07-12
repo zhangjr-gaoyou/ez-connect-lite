@@ -32,4 +32,4 @@ libfreertos-cflags-$(CONFIG_ENABLE_ASSERTS) += -DCONFIG_ENABLE_ASSERT
 
 libfreertos-cflags-$(tc-iar-env-y) += --fpu VFPv4_SP
 
-libfreertos-supported-toolchain-y := arm_gcc iar
+libfreertos-supported-toolchain-y := arm_gcc
