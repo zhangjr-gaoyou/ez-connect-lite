@@ -383,8 +383,8 @@ void wlan_event_normal_connect_failed(void *data)
 void wlan_event_normal_connected(void *data)
 {
 	int ret;
-	/* Default time set to 1 April 2016 */
-	time_t time = 1459468800;
+	/* Default time set to 12th July 2017 */
+	time_t time = 1499938033;
 
 	wmprintf("Connected successfully to the configured network\r\n");
 

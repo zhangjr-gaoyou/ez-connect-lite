@@ -16,3 +16,9 @@ aws_starter_demo-ftfs-api-y := 100
 #aws_starter_demo-linkerscript-y := /path/to/linkerscript
 # Applications could also define custom board files if required using following:
 #aws_starter_demo-board-y := /path/to/boardfile
+
+aws_demo-supported-toolchain-y := arm_gcc
+
+ifneq ($(XIP),1)
+  $(error This app can only be built with XIP=1)
+endif
