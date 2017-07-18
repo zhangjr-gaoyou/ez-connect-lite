@@ -73,6 +73,11 @@ static char url[128];
 #define BUFSIZE                  128
 #define MAX_MAC_BYTES            6
 
+static wm_tls_cert_t aws_ca_cert = {
+	.cert = (unsigned char *)rootCA,
+	.cert_size = sizeof(rootCA),
+};
+
 /* callback function invoked on reset to factory */
 static void device_reset_to_factory_cb()
 {
@@ -137,6 +142,8 @@ static void configure_led_and_button()
 
 static char client_cert_buffer[AWS_PUB_CERT_SIZE];
 static char private_key_buffer[AWS_PRIV_KEY_SIZE];
+static wm_tls_cert_t aws_dev_cert;
+static wm_tls_key_t aws_dev_key;
 #define THING_LEN 126
 #define REGION_LEN 16
 static char thing_name[THING_LEN];
@@ -148,6 +155,7 @@ static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
 	int ret = WM_SUCCESS;
 	char region[REGION_LEN];
 	uint8_t device_mac[MAX_MAC_BYTES];
+
 	memset(region, 0, sizeof(region));
 
 	/* read configured thing name from the persistent memory */
@@ -183,7 +191,7 @@ static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
 	}
 	sp->pHost = url;
 	sp->port = AWS_IOT_MQTT_PORT;
-	sp->pRootCA = rootCA;
+	sp->pRootCA = (char *) &aws_ca_cert;
 	sp->enableAutoReconnect = true;
 	sp->disconnectHandler = NULL;
 
@@ -193,7 +201,19 @@ static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
 		wmprintf("Failed to configure certificate. Returning!\r\n");
 		return -WM_FAIL;
 	}
-	sp->pClientCRT = client_cert_buffer;
+
+	/*
+	 * MBEDTLS requires last character of buffer (which will be used
+	 * for cert parsing) as '\0'.
+	 *
+	 * If last character of buffer is not '-', then set it to '\0'.
+	 */
+	while (client_cert_buffer[strlen(client_cert_buffer) - 1] != '-')
+		client_cert_buffer[strlen(client_cert_buffer) - 1] = '\0';
+
+	aws_dev_cert.cert = (unsigned char *)client_cert_buffer;
+	aws_dev_cert.cert_size = strlen(client_cert_buffer) + 1;
+	sp->pClientCRT = (char *) &aws_dev_cert;
 
 	/* read configured private key from the persistent memory */
 	ret = read_aws_key(private_key_buffer, AWS_PRIV_KEY_SIZE);
@@ -201,7 +221,15 @@ static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
 		wmprintf("Failed to configure key. Returning!\r\n");
 		return -WM_FAIL;
 	}
-	sp->pClientKey = private_key_buffer;
+	/*
+	 * If last character of buffer is not '-', then set it to '\0'.
+	 */
+	while (private_key_buffer[strlen(private_key_buffer) - 1] != '-')
+		private_key_buffer[strlen(private_key_buffer) - 1] = '\0';
+
+	aws_dev_key.key = (unsigned char *)private_key_buffer;
+	aws_dev_key.key_size = strlen(private_key_buffer) + 1;
+	sp->pClientKey = (char *) &aws_dev_key;
 
 	return ret;
 }
