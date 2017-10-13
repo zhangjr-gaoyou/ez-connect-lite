@@ -11,6 +11,7 @@ subdir-y += sdk/external/aws_iot
 subdir-y += sdk/external/freertos
 subdir-y += sdk/external/lwip
 subdir-y += sdk/external/mbedtls
+subdir-y += sdk/external/sensors
 
 # pre-built libraries
 subdir-y += sdk/libs
