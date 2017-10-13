@@ -28,7 +28,7 @@ global-cflags-y += -Isdk/src/boards
 #################################################
 
 ######### SDK Version
-SDK_VERSION_INTERNAL ?= 3.5
+SDK_VERSION_INTERNAL ?= 4.0.R2
 SDK_VERSION :=\"$(SDK_VERSION_INTERNAL)$(EXTRA_SDK_VERSION)\"
 global-cflags-y += -DSDK_VERSION=$(SDK_VERSION)
 

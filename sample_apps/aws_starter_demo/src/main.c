@@ -34,6 +34,18 @@
 #include <aws_utils.h>
 /* configuration parameters */
 #include <aws_iot_config.h>
+#ifdef SENSORS_SUPPORTED
+#include <sensor_drv.h>
+#include <sensor_tempr_drv.h>
+#include <sensor_light_drv.h>
+#include <sensor_pressure_drv.h>
+#include <sensor_th_drv.h>
+#include <sensor_occ_drv.h>
+#include <sensor_co2_drv.h>
+#include <sensor_gas_drv.h>
+#include <sensor_acc_drv.h>
+#include <sensor_ultrasonic_drv.h>
+#endif /* SENSORS_SUPPORTED */
 
 #include "aws_starter_root_ca_cert.h"
 
@@ -274,6 +286,10 @@ int aws_publish_property_state(ShadowConnectParameters_t *sp)
 	int ret = WM_SUCCESS;
 
 	memset(state, 0, BUFSIZE);
+#ifdef SENSORS_SUPPORTED
+	/* Construct JSON object for sensor events */
+	sensor_msg_construct(state, buf_out, BUFSIZE);
+#endif /* SENSORS_SUPPORTED */
 	if (pushbutton_a_count_prev != pushbutton_a_count) {
 		snprintf(buf_out, BUFSIZE, ",\"%s\":%lu", VAR_BUTTON_A_PROPERTY,
 			 pushbutton_a_count);
@@ -381,8 +397,11 @@ static void aws_starter_demo(os_thread_arg_t data)
 		if (ret != WM_SUCCESS)
 			wmprintf("Sending property failed\r\n");
 		os_thread_sleep(100);
+#ifdef SENSORS_SUPPORTED
+		/* Periodically scan the sensor inputs */
+		sensor_inputs_scan();
+#endif /* SENSORS_SUPPORTED */
 	}
-
 	ret = aws_iot_shadow_disconnect(&mqtt_client);
 	if (AWS_SUCCESS != ret) {
 		wmprintf("aws iot shadow error %d\r\n", ret);
@@ -455,12 +474,48 @@ int main()
 	}
 
 	wmprintf("Build Time: " __DATE__ " " __TIME__ "\r\n");
+	wmprintf("\r\n#### Board Name = %s\r\n", BOARD_NAME);
 	wmprintf("\r\n#### AWS STARTER DEMO ####\r\n\r\n");
 
 	/* configure pushbutton on device to perform reset to factory */
 	configure_reset_to_factory();
 	/* configure led and pushbutton to communicate with cloud */
 	configure_led_and_button();
+
+#ifdef SENSORS_SUPPORTED
+	/* Initialize Sensor Interface Layer */
+	int retval = sensor_drv_init();
+	if (retval == WM_SUCCESS) {
+		/* Register all Sensor Low Level drivers here... */
+#ifdef SEN_OCC
+		occupancy_sensor_event_register();
+#endif /* SEN_OCC */
+#ifdef SEN_TEMPR
+		temperature_sensor_event_register();
+#endif /* SEN_TEMPR */
+#ifdef SEN_LIGHT
+		light_sensor_event_register();
+#endif /* SEN_LIGHT */
+#ifdef SEN_PRESSURE
+		pressure_sensor_event_register();
+#endif /* SEN_PRESSURE */
+#ifdef SEN_TH
+		th_sensor_event_register();
+#endif /* SEN_TH */
+#ifdef SEN_CO2
+		co2_sensor_event_register();
+#endif /* SEN_CO2 */
+#ifdef SEN_GAS
+		gas_sensor_event_register();
+#endif /* SEN_GAS */
+#ifdef SEN_ACC
+		acc_sensor_event_register();
+#endif /* SEN_ACC */
+#ifdef SEN_ULTRASONIC
+		ultrasonic_sensor_event_register();
+#endif /* SEN_ACC */
+	}
+#endif /* SENSORS_SUPPORTED */
 
 	/* This api adds aws iot configuration support in web application.
 	 * Configuration details are then stored in persistent memory.

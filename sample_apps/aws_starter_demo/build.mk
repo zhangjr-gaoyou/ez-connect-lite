@@ -6,6 +6,7 @@ exec-y += aws_starter_demo
 aws_starter_demo-objs-y := src/main.c
 aws_starter_demo-cflags-y := -I$(d)/src -DAPPCONFIG_DEBUG_ENABLE=1
 
+global-cflags-y += -DBOARD_NAME=\"$(BOARD)\"
 #ifneq ($(wildcard $(d)/www),)
 aws_starter_demo-ftfs-y := aws_starter_demo.ftfs
 aws_starter_demo-ftfs-dir-y     := $(d)/www
