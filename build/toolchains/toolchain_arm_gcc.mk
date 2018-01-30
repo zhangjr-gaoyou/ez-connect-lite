@@ -52,7 +52,10 @@ tc-lflags-y := \
 		-Xlinker --cref \
 		-Xlinker --gc-sections
 
-_mrvl_build_time ?= $(shell date +%s)
+# Defining t_date here as devhost_*.mk are not included yet.
+t_which ?= which
+t_date ?= $(shell $(t_which) date | tail -1)
+_mrvl_build_time ?= $(shell $(t_date) +%s)
 
 # Linker flags
 tc-lflags-$(tc-lto-y) += -Xlinker -flto
