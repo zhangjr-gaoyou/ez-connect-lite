@@ -194,25 +194,41 @@ static int aws_starter_load_configuration(ShadowInitParameters_t *sp,
 
 	/* read configured region name from the persistent memory */
 	ret = read_aws_region(region, REGION_LEN);
-	if (ret == WM_SUCCESS) {
+
+        /*
+        if (ret == WM_SUCCESS) {
 		snprintf(url, sizeof(url), "data.iot.%s.amazonaws.com",
 			 region);
 	} else {
 		snprintf(url, sizeof(url), "data.iot.%s.amazonaws.com",
 			 AWS_IOT_MY_REGION_NAME);
 	}
+        */
+
+
+         if (ret == WM_SUCCESS) {
+                snprintf(url, sizeof(url), "a1ttlpgxympuou-ats.iot.%s.amazonaws.com",
+                         region);
+        } else {
+                snprintf(url, sizeof(url), "a1ttlpgxympuou-ats.iot.%s.amazonaws.com",
+                         AWS_IOT_MY_REGION_NAME);
+        }
+
+
 	sp->pHost = url;
 	sp->port = AWS_IOT_MQTT_PORT;
 	sp->pRootCA = (char *) &aws_ca_cert;
 	sp->enableAutoReconnect = true;
 	sp->disconnectHandler = NULL;
 
+  wmprintf("read_aws_certificate URL=%s\r\n",url);
 	/* read configured certificate from the persistent memory */
 	ret = read_aws_certificate(client_cert_buffer, AWS_PUB_CERT_SIZE);
 	if (ret != WM_SUCCESS) {
 		wmprintf("Failed to configure certificate. Returning!\r\n");
 		return -WM_FAIL;
 	}
+
 
 	/*
 	 * MBEDTLS requires last character of buffer (which will be used
@@ -431,7 +447,10 @@ void wlan_event_normal_connected(void *data)
 {
 	int ret;
 	/* Default time set to 12th July 2017 */
+  /*
 	time_t time = 1499938033;
+  */
+	time_t time = 1556402938;
 
 	wmprintf("Connected successfully to the configured network\r\n");
 

@@ -32,8 +32,15 @@
 
 /* Maxium fragment length in bytes, determines the size of
  * each of the two internal I/O buffers */
-#define MBEDTLS_SSL_MAX_CONTENT_LEN			(1024 * 4)
 
+/*
+#define MBEDTLS_SSL_MAX_CONTENT_LEN			(1024 * 4)
+*/
+#define MBEDTLS_SSL_MAX_CONTENT_LEN			(1024 * 16)
+
+/*
+#define MBEDTLS_SSL_MAX_CONTENT_LEN			(1024 * 16)
+*/
 /* Remove RC4 ciphersuites by default in SSL / TLS. */
 #define MBEDTLS_REMOVE_ARC4_CIPHERSUITES
 
